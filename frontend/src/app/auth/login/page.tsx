@@ -5,56 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  ArrowLeft, Lock, Mail, KeyRound, ShieldAlert, Zap, 
-  User, Briefcase, Settings, ShieldCheck, Smartphone, 
+  ArrowLeft, Lock, Mail, KeyRound, ShieldAlert,
+  ShieldCheck, Smartphone, 
   MessageSquare, Loader2 
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-// Demo accounts for each role
-const DEMO_ACCOUNTS = [
-  {
-    role: "Investor",
-    email: "investor@rgt.com",
-    mobile: "9988776655",
-    password: "investor123",
-    redirect: "/dashboard/investor",
-    icon: User,
-    color: "text-gray-400",
-    border: "border-gray-500/30 hover:border-gray-400/60",
-    badge: "bg-gray-500/10 text-gray-300",
-  },
-  {
-    role: "Employee",
-    email: "employee@rgt.com",
-    password: "employee123",
-    redirect: "/dashboard/employee",
-    icon: Briefcase,
-    color: "text-blue-400",
-    border: "border-blue-500/30 hover:border-blue-400/60",
-    badge: "bg-blue-500/10 text-blue-300",
-  },
-  {
-    role: "Manager",
-    email: "manager@rgt.com",
-    password: "manager123",
-    redirect: "/dashboard/manager",
-    icon: Settings,
-    color: "text-purple-400",
-    border: "border-purple-500/30 hover:border-purple-400/60",
-    badge: "bg-purple-500/10 text-purple-300",
-  },
-  {
-    role: "Admin",
-    email: "admin@rgt.com",
-    password: "admin@secure",
-    redirect: "/dashboard/admin",
-    icon: ShieldCheck,
-    color: "text-gold-400",
-    border: "border-gold-500/30 hover:border-gold-500/60",
-    badge: "bg-gold-500/10 text-gold-300",
-  },
-];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -67,19 +23,7 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeRole, setActiveRole] = useState<string | null>(null);
   const router = useRouter();
-
-  const handleQuickFill = (account: typeof DEMO_ACCOUNTS[0]) => {
-    if (loginMethod === "password") {
-      setEmail(account.email);
-      setPassword(account.password);
-    } else if (account.mobile) {
-      setMobile(account.mobile);
-    }
-    setActiveRole(account.role);
-    setError(null);
-  };
 
   const handleSendOTP = async () => {
     if (!mobile) return setError("Please enter your mobile number");
@@ -140,10 +84,9 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const endpoint = activeRole === "Investor" || !activeRole ? "/auth/investor/login" : "/auth/employee/login";
-      const body = activeRole === "Investor" || !activeRole 
-        ? { mobile: email.includes("@") ? "" : email, password } 
-        : { email, password };
+      const isEmployee = email.includes("@");
+      const endpoint = isEmployee ? "/auth/employee/login" : "/auth/investor/login";
+      const body = isEmployee ? { email, password } : { mobile: email, password };
       
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
@@ -217,32 +160,6 @@ export default function LoginPage() {
             >
               OTP Secure
             </button>
-          </div>
-
-          {/* Quick Fill Section */}
-          <div className="mb-6 relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-4 h-4 text-gold-400" />
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Demo Vaults</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_ACCOUNTS.map((account) => (
-                <button
-                  key={account.role}
-                  type="button"
-                  onClick={() => handleQuickFill(account)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all duration-200 text-left group ${account.border} ${activeRole === account.role ? 'bg-white/5' : 'bg-navy-950/40 hover:bg-white/5'}`}
-                >
-                  <account.icon className={`w-4 h-4 ${account.color} shrink-0`} />
-                  <div>
-                    <p className={`text-xs font-semibold ${account.color}`}>{account.role}</p>
-                    <p className="text-[10px] text-gray-600 leading-tight">
-                      {loginMethod === "otp" ? (account.mobile || "N/A") : account.email}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
 
           <AnimatePresence mode="wait">
