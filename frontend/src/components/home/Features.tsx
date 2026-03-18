@@ -57,13 +57,13 @@ function FeatureCard({ title, description, icon: Icon, delay }: FeatureCardProps
       <div className="absolute inset-0 bg-gold-gradient rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
       
       {/* Card Body */}
-      <div className="absolute inset-0 bg-navy-900/80 backdrop-blur-sm border border-gold-500/10 hover:border-gold-500/30 rounded-2xl p-8 transition-colors duration-500 flex flex-col items-start gap-6 overflow-hidden">
+      <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-sm border border-gold-500/10 hover:border-gold-500/30 rounded-2xl p-8 transition-colors duration-500 flex flex-col items-start gap-6 overflow-hidden">
         
         {/* Subtle decorative background shape */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-gold-500/5 rounded-full blur-2xl group-hover:bg-gold-500/10 transition-colors duration-500" />
         
         {/* Icon */}
-        <div className="w-14 h-14 rounded-xl bg-navy-950 border border-gold-500/20 flex items-center justify-center shadow-lg group-hover:shadow-gold-glow-intense transition-shadow duration-500 relative z-10">
+        <div className="w-14 h-14 rounded-xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center shadow-lg group-hover:shadow-gold-glow-intense transition-shadow duration-500 relative z-10">
           <Icon className="w-6 h-6 text-gold-400" />
         </div>
         
@@ -81,8 +81,8 @@ function FeatureCard({ title, description, icon: Icon, delay }: FeatureCardProps
 export default function Features() {
   const features = [
     {
-      title: "Physical Gold Investment",
-      description: "Secure your wealth physically. Visit our corporate office to invest directly in premium Gold Coins, processed seamlessly by our expert employees.",
+      title: "Physical Gold Advance",
+      description: "Secure your wealth physically. Visit our corporate office to participate directly in premium Gold Coins, processed seamlessly by our expert employees.",
       icon: Coins,
     },
     {
@@ -98,7 +98,7 @@ export default function Features() {
   ];
 
   return (
-    <section className="py-32 relative overflow-hidden bg-navy-950">
+    <section className="py-32 relative overflow-hidden bg-emerald-1000">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Section Header */}
@@ -137,3 +137,5 @@ export default function Features() {
     </section>
   );
 }
+
+

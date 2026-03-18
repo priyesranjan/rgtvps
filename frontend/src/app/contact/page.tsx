@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen flex flex-col bg-navy-950">
+    <main className="min-h-screen flex flex-col bg-emerald-1000">
       <Navbar />
       
       <section className="pt-40 pb-20 px-6 relative z-10 flex-1">
@@ -24,26 +24,26 @@ export default function ContactPage() {
 
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Contact Form */}
-            <div className="bg-navy-900/60 backdrop-blur-xl border border-gold-500/20 p-10 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div className="bg-emerald-950/60 backdrop-blur-xl border border-gold-500/20 p-10 rounded-3xl shadow-2xl relative overflow-hidden">
               <h3 className="text-2xl font-heading font-semibold text-white mb-6">Send a Direct Message</h3>
               <form className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
-                    <input type="text" placeholder="John Doe" className="w-full bg-navy-950/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
+                    <input type="text" placeholder="John Doe" className="w-full bg-emerald-1000/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300 ml-1">Phone Number</label>
-                    <input type="tel" placeholder="+91 9065 415 619" className="w-full bg-navy-950/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
+                    <input type="tel" placeholder="+91 9065 415 619" className="w-full bg-emerald-1000/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300 ml-1">Email Address</label>
-                  <input type="email" placeholder="invest@example.com" className="w-full bg-navy-950/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
+                  <input type="email" placeholder="invest@example.com" className="w-full bg-emerald-1000/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300 ml-1">Your Message</label>
-                  <textarea rows={4} placeholder="How can we assist you with your investment?" className="w-full bg-navy-950/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3 px-4 outline-none transition-all placeholder:text-gray-600 resize-none focus:shadow-gold-glow"></textarea>
+                  <textarea rows={4} placeholder="How can we assist you with your investment?" className="w-full bg-emerald-1000/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3 px-4 outline-none transition-all placeholder:text-gray-600 resize-none focus:shadow-gold-glow"></textarea>
                 </div>
                 <Button className="w-full py-4 text-base">Send Inquiry <MessageSquare className="w-4 h-4 ml-2" /></Button>
               </form>
@@ -52,8 +52,8 @@ export default function ContactPage() {
             {/* Direct Info & Map */}
             <div className="flex flex-col gap-8 flex-1">
               <div className="grid sm:grid-cols-2 gap-6">
-                <div className="bg-navy-900/40 border border-gold-500/10 p-6 rounded-2xl flex flex-col items-start gap-4 hover:border-gold-500/30 transition-colors">
-                  <div className="w-12 h-12 rounded-xl bg-navy-950 border border-gold-500/20 flex items-center justify-center text-gold-400">
+                <div className="bg-emerald-950/40 border border-gold-500/10 p-6 rounded-2xl flex flex-col items-start gap-4 hover:border-gold-500/30 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center text-gold-400">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
@@ -62,8 +62,8 @@ export default function ContactPage() {
                   </div>
                 </div>
                 
-                <div className="bg-navy-900/40 border border-gold-500/10 p-6 rounded-2xl flex flex-col items-start gap-4 hover:border-gold-500/30 transition-colors">
-                  <div className="w-12 h-12 rounded-xl bg-navy-950 border border-gold-500/20 flex items-center justify-center text-gold-400">
+                <div className="bg-emerald-950/40 border border-gold-500/10 p-6 rounded-2xl flex flex-col items-start gap-4 hover:border-gold-500/30 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center text-gold-400">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div>
@@ -73,9 +73,9 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div className="bg-navy-900/40 border border-gold-500/10 p-8 rounded-2xl flex-1 flex flex-col">
+              <div className="bg-emerald-950/40 border border-gold-500/10 p-8 rounded-2xl flex-1 flex flex-col">
                 <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-navy-950 border border-gold-500/20 shrink-0 flex items-center justify-center text-gold-400">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-1000 border border-gold-500/20 shrink-0 flex items-center justify-center text-gold-400">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
@@ -108,3 +108,5 @@ export default function ContactPage() {
     </main>
   );
 }
+
+

@@ -30,3 +30,5 @@ export default function NetFlowChart({ data }: Props) {
     </ResponsiveContainer>
   );
 }
+
+

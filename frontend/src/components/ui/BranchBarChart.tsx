@@ -26,3 +26,5 @@ export default function BranchBarChart({ data }: Props) {
     </ResponsiveContainer>
   );
 }
+
+

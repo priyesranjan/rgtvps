@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen flex flex-col bg-navy-950">
+    <main className="min-h-screen flex flex-col bg-emerald-1000">
       <Navbar />
       
       {/* Hero Section */}
@@ -13,7 +13,7 @@ export default function AboutPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold-500/10 rounded-full blur-[120px] pointer-events-none" />
         
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-navy-900 border border-gold-500/20 mb-8 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-950 border border-gold-500/20 mb-8 backdrop-blur-sm">
             <ShieldCheck className="w-4 h-4 text-gold-400" />
             <span className="text-sm font-medium text-gray-300">ISO 9001:2015 Certified Trust</span>
           </div>
@@ -37,8 +37,8 @@ export default function AboutPage() {
             <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-gold-500/20 to-transparent" />
 
             {/* Step 1 */}
-            <div className="bg-navy-900/40 backdrop-blur-md border border-gold-500/10 p-10 rounded-3xl relative group hover:border-gold-500/30 transition-all">
-              <div className="w-16 h-16 rounded-2xl bg-navy-950 border border-gold-500/20 flex items-center justify-center mb-8 relative z-10 shadow-gold-glow">
+            <div className="bg-emerald-950/40 backdrop-blur-md border border-gold-500/10 p-10 rounded-3xl relative group hover:border-gold-500/30 transition-all">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center mb-8 relative z-10 shadow-gold-glow">
                 <Landmark className="w-8 h-8 text-gold-400" />
               </div>
               <h3 className="text-2xl font-heading font-semibold text-white mb-4">1. Invest Physically</h3>
@@ -48,8 +48,8 @@ export default function AboutPage() {
             </div>
 
             {/* Step 2 */}
-            <div className="bg-navy-900/40 backdrop-blur-md border border-gold-500/10 p-10 rounded-3xl relative group hover:border-gold-500/30 transition-all">
-              <div className="w-16 h-16 rounded-2xl bg-navy-950 border border-gold-500/20 flex items-center justify-center mb-8 relative z-10 shadow-gold-glow">
+            <div className="bg-emerald-950/40 backdrop-blur-md border border-gold-500/10 p-10 rounded-3xl relative group hover:border-gold-500/30 transition-all">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center mb-8 relative z-10 shadow-gold-glow">
                 <Coins className="w-8 h-8 text-gold-400" />
               </div>
               <h3 className="text-2xl font-heading font-semibold text-white mb-4">2. Asset Allocation</h3>
@@ -59,8 +59,8 @@ export default function AboutPage() {
             </div>
 
             {/* Step 3 */}
-            <div className="bg-navy-900/40 backdrop-blur-md border border-gold-500/10 p-10 rounded-3xl relative group hover:border-gold-500/30 transition-all">
-              <div className="w-16 h-16 rounded-2xl bg-navy-950 border border-gold-500/20 flex items-center justify-center mb-8 relative z-10 shadow-gold-glow">
+            <div className="bg-emerald-950/40 backdrop-blur-md border border-gold-500/10 p-10 rounded-3xl relative group hover:border-gold-500/30 transition-all">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center mb-8 relative z-10 shadow-gold-glow">
                 <Banknote className="w-8 h-8 text-gold-400" />
               </div>
               <h3 className="text-2xl font-heading font-semibold text-white mb-4">3. Enjoy Your Yield</h3>
@@ -83,3 +83,5 @@ export default function AboutPage() {
     </main>
   );
 }
+
+

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import {
   Star, Target, Bell, MapPin
 } from "lucide-react";
 import { downloadInvoicePDF } from "@/lib/downloadInvoice";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
 /* ─── Dynamic Chart Imports (ssr:false prevents blank -1x-1 bug) ─── */
 const BranchBarChart = dynamic(() => import("@/components/ui/BranchBarChart"), {
@@ -57,7 +59,7 @@ const navItems = [
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-6 right-6 z-50 bg-navy-900 border border-green-500/30 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3">
+      className="fixed bottom-6 right-6 z-50 bg-emerald-950 border border-green-500/30 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3">
       <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
       <span className="text-sm font-medium">{message}</span>
       <button onClick={onClose}><X className="w-4 h-4 text-gray-500 hover:text-white" /></button>
@@ -70,72 +72,44 @@ export default function ManagerDashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [toast, setToast] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const router = useRouter();
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-8 border-b border-gold-500/10">
-        <Link href="/" className="text-2xl font-heading font-bold tracking-wider text-white">
-          <span className="text-gold-400">RGT</span> Analytics
-        </Link>
-        <div className="mt-8 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-navy-800 border-2 border-gold-500/30 flex items-center justify-center text-purple-400 font-bold">PK</div>
-          <div>
-            <p className="text-sm font-medium text-white">Priya Kumari</p>
-            <div className="flex items-center text-xs text-purple-400 mt-0.5">
-              <Briefcase className="w-3 h-3 mr-1" /> Branch Manager
-            </div>
-          </div>
-        </div>
-      </div>
-      <nav className="flex-1 p-6 space-y-1">
-        {navItems.map((item) => (
-          <button key={item.id} onClick={() => { setActiveTab(item.id); setMobileSidebarOpen(false); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeTab === item.id ? "bg-gold-500/10 text-gold-400 border border-gold-500/20" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>
-            <item.icon className="w-4 h-4" />
-            {item.name}
-          </button>
-        ))}
-      </nav>
-      <div className="p-6 border-t border-gold-500/10">
-        <Link href="/auth/login">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all">
-            <LogOut className="w-4 h-4" /> Secure Logout
-          </button>
-        </Link>
-      </div>
-    </div>
-  );
+  const managerUser = {
+    name: "Priya Kumari",
+    role: "MANAGER",
+    details: "Branch Manager",
+    icon: Briefcase,
+    iconBg: "bg-emerald-900",
+    iconColor: "text-purple-400",
+    borderColor: "border-gold-500/30"
+  };
+
+  const sidebarItems = navItems.map(item => ({
+    ...item
+  }));
 
   return (
-    <div className="min-h-screen bg-navy-950 flex">
-
-      {/* Desktop Sidebar */}
-      <aside className="w-72 bg-navy-900/50 border-r border-gold-500/10 hidden lg:flex flex-col relative z-20">
-        <SidebarContent />
-      </aside>
-
-      {/* Mobile Sidebar */}
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setMobileSidebarOpen(false)}>
-            <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-72 h-full bg-navy-900 border-r border-gold-500/10" onClick={(e) => e.stopPropagation()}>
-              <SidebarContent />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen bg-emerald-1000 flex">
+      <DashboardSidebar
+        items={sidebarItems}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={managerUser}
+        onLogout={() => { localStorage.clear(); router.push("/auth/login"); }}
+        isMobileOpen={mobileSidebarOpen}
+        setIsMobileOpen={setMobileSidebarOpen}
+        roleLabel="Analytics"
+        accentColor="purple"
+      />
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto relative">
+      <main className="flex-1 overflow-y-auto relative h-screen custom-scrollbar">
         <div className="absolute top-0 right-1/4 w-[700px] h-[700px] bg-purple-900/10 rounded-full blur-[150px] pointer-events-none" />
 
         {/* Sticky Header */}
-        <header className="sticky top-0 z-30 bg-navy-950/90 backdrop-blur-md border-b border-gold-500/10 px-5 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-emerald-1000/90 backdrop-blur-md border-b border-gold-500/10 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button className="lg:hidden text-gray-400 hover:text-white p-1" onClick={() => setMobileSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
@@ -177,7 +151,7 @@ export default function ManagerDashboardPage() {
                     { label: "Avg Ticket Size", value: "₹5.5 L", trend: "+1.2%", positive: true, icon: IndianRupee, color: "text-gold-400" },
                   ].map(({ label, value, trend, positive, icon: Icon, color }, i) => (
                     <motion.div key={label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                      className="bg-navy-900/40 border border-gold-500/10 p-5 rounded-2xl group hover:border-gold-500/20 transition-all">
+                      className="bg-emerald-950/40 border border-gold-500/10 p-5 rounded-2xl group hover:border-gold-500/20 transition-all">
                       <div className={`${color} mb-3`}><Icon className="w-5 h-5" /></div>
                       <p className="text-sm text-gray-400 mb-1">{label}</p>
                       <h3 className="text-2xl font-heading font-bold text-white mb-2">{value}</h3>
@@ -190,7 +164,7 @@ export default function ManagerDashboardPage() {
 
                 {/* Charts row */}
                 <div className="grid lg:grid-cols-3 gap-6 mb-8">
-                  <div className="lg:col-span-2 bg-navy-900/40 border border-gold-500/10 rounded-2xl p-6">
+                  <div className="lg:col-span-2 bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-6">
                     <h3 className="text-lg font-heading font-semibold text-white mb-5 flex items-center gap-2">
                       <BarChartIcon className="w-5 h-5 text-gold-400" /> Cash Flow — This Week
                     </h3>
@@ -198,7 +172,7 @@ export default function ManagerDashboardPage() {
                       <BranchBarChart data={weeklyData} />
                     </div>
                   </div>
-                  <div className="bg-navy-900/40 border border-gold-500/10 rounded-2xl p-6">
+                  <div className="bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-6">
                     <h3 className="text-lg font-heading font-semibold text-white mb-5">Top Employees</h3>
                     <div className="space-y-3">
                       {employees.map((emp, i) => (
@@ -206,7 +180,7 @@ export default function ManagerDashboardPage() {
                           className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 border border-transparent hover:border-gold-500/10 cursor-pointer transition-all">
                           <div className="flex items-center gap-3">
                             <div className="relative">
-                              <div className="w-9 h-9 rounded-full bg-navy-800 border border-gold-500/20 flex items-center justify-center text-xs font-bold text-gray-300">{emp.avatar}</div>
+                              <div className="w-9 h-9 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-xs font-bold text-gray-300">{emp.avatar}</div>
                               {i === 0 && <Star className="absolute -top-1 -right-1 w-3.5 h-3.5 text-gold-400 fill-gold-400" />}
                             </div>
                             <div>
@@ -222,7 +196,7 @@ export default function ManagerDashboardPage() {
                 </div>
 
                 {/* Recent Alerts */}
-                <div className="bg-navy-900/30 border border-gold-500/10 rounded-2xl p-6">
+                <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl p-6">
                   <h3 className="text-lg font-heading font-semibold text-white mb-4">Branch Alerts</h3>
                   <div className="space-y-3">
                     {[
@@ -257,11 +231,11 @@ export default function ManagerDashboardPage() {
                 <div className="space-y-4">
                   {employees.map((emp, i) => (
                     <motion.div key={emp.name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                      className="bg-navy-900/40 border border-gold-500/10 rounded-2xl p-5 hover:border-gold-500/20 transition-all">
+                      className="bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-5 hover:border-gold-500/20 transition-all">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                           <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-navy-800 border-2 border-gold-500/30 flex items-center justify-center font-bold text-gold-400">{emp.avatar}</div>
+                            <div className="w-12 h-12 rounded-full bg-emerald-900 border-2 border-gold-500/30 flex items-center justify-center font-bold text-gold-400">{emp.avatar}</div>
                             {i === 0 && <Star className="absolute -top-1 -right-1 w-4 h-4 text-gold-400 fill-gold-400" />}
                           </div>
                           <div>
@@ -290,7 +264,7 @@ export default function ManagerDashboardPage() {
                           <span className="flex items-center gap-1"><Target className="w-3 h-3" /> Weekly Target</span>
                           <span>{emp.deposits}/{emp.target} deposits</span>
                         </div>
-                        <div className="h-1.5 bg-navy-800 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-emerald-900 rounded-full overflow-hidden">
                           <motion.div initial={{ width: 0 }} animate={{ width: `${(emp.deposits / emp.target) * 100}%` }}
                             transition={{ duration: 0.8, delay: i * 0.1 }}
                             className={`h-full rounded-full ${emp.deposits >= emp.target * 0.8 ? "bg-gold-500" : "bg-blue-500"}`} />
@@ -313,7 +287,7 @@ export default function ManagerDashboardPage() {
                 </div>
 
                 {/* Net Flow Chart */}
-                <div className="bg-navy-900/40 border border-gold-500/10 rounded-2xl p-6 mb-6">
+                <div className="bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-6 mb-6">
                   <h3 className="text-lg font-heading font-semibold text-white mb-5 flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-gold-400" /> Net Cash Flow — Last 6 Months
                   </h3>
@@ -332,7 +306,7 @@ export default function ManagerDashboardPage() {
                     { title: "Yield Disbursement Log", desc: "All yield payouts processed this month", period: "March 2026" },
                     { title: "Compliance Report", desc: "KYC status and pending verifications", period: "March 2026" },
                   ].map((r) => (
-                    <div key={r.title} className="bg-navy-900/30 border border-gold-500/10 hover:border-gold-500/25 rounded-2xl p-5 flex items-center justify-between transition-all">
+                    <div key={r.title} className="bg-emerald-950/30 border border-gold-500/10 hover:border-gold-500/25 rounded-2xl p-5 flex items-center justify-between transition-all">
                       <div>
                         <p className="font-medium text-white text-sm mb-1">{r.title}</p>
                         <p className="text-xs text-gray-500">{r.desc}</p>
@@ -359,7 +333,7 @@ export default function ManagerDashboardPage() {
                 </div>
                 <div className="space-y-5 max-w-2xl">
                   {/* Branch Info */}
-                  <div className="bg-navy-900/40 border border-gold-500/10 rounded-2xl p-6">
+                  <div className="bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-6">
                     <h3 className="font-semibold text-white mb-5">Branch Information</h3>
                     <div className="space-y-4">
                       {[
@@ -376,7 +350,7 @@ export default function ManagerDashboardPage() {
                     </div>
                   </div>
                   {/* Yield Plans */}
-                  <div className="bg-navy-900/40 border border-gold-500/10 rounded-2xl p-6">
+                  <div className="bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-6">
                     <h3 className="font-semibold text-white mb-5">Active Yield Plans</h3>
                     <div className="space-y-3">
                       {[
@@ -384,7 +358,7 @@ export default function ManagerDashboardPage() {
                         { plan: "Premium Weekly Yield", rate: "3.0% Monthly", clients: 312, active: true },
                         { plan: "Locked Monthly Yield", rate: "4.5% Monthly", clients: 127, active: true },
                       ].map(({ plan, rate, clients, active }) => (
-                        <div key={plan} className="flex items-center justify-between p-3 rounded-xl bg-navy-800/30 border border-gold-500/10">
+                        <div key={plan} className="flex items-center justify-between p-3 rounded-xl bg-emerald-900/30 border border-gold-500/10">
                           <div>
                             <p className="text-sm font-medium text-white">{plan}</p>
                             <p className="text-xs text-gray-500">{clients} clients enrolled</p>
@@ -401,7 +375,7 @@ export default function ManagerDashboardPage() {
                     </div>
                   </div>
                   {/* Notification Prefs */}
-                  <div className="bg-navy-900/40 border border-gold-500/10 rounded-2xl p-6">
+                  <div className="bg-emerald-950/40 border border-gold-500/10 rounded-2xl p-6">
                     <h3 className="font-semibold text-white mb-5">Notifications</h3>
                     <div className="space-y-4">
                       {[
@@ -413,7 +387,7 @@ export default function ManagerDashboardPage() {
                         <div key={i} className="flex items-center justify-between">
                           <span className="text-sm text-gray-300">{label}</span>
                           <button onClick={() => showToast(`Notification preference updated — requires backend.`)}
-                            className={`w-10 h-5 rounded-full transition-colors relative ${on ? "bg-gold-500" : "bg-navy-800 border border-gold-500/20"}`}>
+                            className={`w-10 h-5 rounded-full transition-colors relative ${on ? "bg-gold-500" : "bg-emerald-900 border border-gold-500/20"}`}>
                             <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
                           </button>
                         </div>
@@ -421,7 +395,7 @@ export default function ManagerDashboardPage() {
                     </div>
                   </div>
                   <button onClick={() => showToast("Settings saved! (Requires backend to persist)")}
-                    className="w-full py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-navy-950 font-bold transition-all">
+                    className="w-full py-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-emerald-1000 font-bold transition-all">
                     Save Settings
                   </button>
                 </div>
@@ -439,3 +413,5 @@ export default function ManagerDashboardPage() {
     </div>
   );
 }
+
+

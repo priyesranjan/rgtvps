@@ -18,7 +18,7 @@ export function Button({
   ...props 
 }: ButtonProps) {
   const variants = {
-    primary: "bg-gold-gradient text-navy-950 font-semibold shadow-gold-glow hover:shadow-gold-glow-intense border border-transparent",
+    primary: "bg-gold-gradient text-emerald-1000 font-semibold shadow-gold-glow hover:shadow-gold-glow-intense border border-transparent",
     outline: "bg-transparent text-gold-500 border border-gold-500/50 hover:bg-gold-500/10 hover:border-gold-500",
     ghost: "bg-transparent text-gray-300 hover:text-gold-400 hover:bg-white/5",
   };
@@ -49,3 +49,5 @@ export function Button({
     </motion.button>
   );
 }
+
+

@@ -7,7 +7,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-navy-950 border-t border-gold-500/10 pt-20 pb-10 overflow-hidden">
+    <footer className="relative bg-emerald-1000 border-t border-gold-500/10 pt-20 pb-10 overflow-hidden">
       {/* Subtle Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-gold-500/5 rounded-[100%] blur-[80px]" />
 
@@ -26,11 +26,11 @@ export default function Footer() {
               />
             </Link>
             <p className="text-gray-400 leading-relaxed max-w-sm">
-              The premier institution for physical gold investment. We offer uncompromised security, reliable yield generation, and exclusive concierge services for discerning investors.
+              The premier institution for physical gold advances. We offer uncompromised security, reliable yield generation, and exclusive concierge services for discerning participants.
             </p>
             
             {/* Compliance Badges */}
-            <div className="flex flex-col gap-1.5 mt-2 bg-navy-900/40 p-3.5 rounded-xl border border-gold-500/20 w-fit shadow-lg shadow-black/20">
+            <div className="flex flex-col gap-1.5 mt-2 bg-emerald-950/40 p-3.5 rounded-xl border border-gold-500/20 w-fit shadow-lg shadow-black/20">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-gold-500 w-4 h-4" />
                 <span className="text-sm font-semibold tracking-wide text-gray-200">ISO 9001:2015 Certified Company</span>
@@ -41,19 +41,19 @@ export default function Footer() {
             </div>
 
             <div className="flex items-center gap-4 mt-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-navy-800 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-navy-950 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
                 <Facebook size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-navy-800 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-navy-950 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
                 <Instagram size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-navy-800 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-navy-950 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
                 <Youtube size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-navy-800 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-navy-950 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
                 <Twitter size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-navy-800 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-navy-950 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
                 <Linkedin size={18} />
               </a>
             </div>
@@ -61,7 +61,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div className="lg:col-span-2">
-            <h3 className="font-heading font-semibold text-lg text-white mb-6 tracking-wide">Investment</h3>
+            <h3 className="font-heading font-semibold text-lg text-white mb-6 tracking-wide">Gold Advance</h3>
             <ul className="flex flex-col gap-4">
               {[
                 { label: 'How it Works', href: '/about' },
@@ -127,9 +127,9 @@ export default function Footer() {
                 <input 
                   type="email" 
                   placeholder="Enter your private email" 
-                  className="w-full bg-navy-900 border border-gold-500/20 text-white px-4 py-3 rounded-md sm:rounded-r-none sm:rounded-l-md outline-none focus:border-gold-500/50 transition-colors text-sm"
+                  className="w-full bg-emerald-950 border border-gold-500/20 text-white px-4 py-3 rounded-md sm:rounded-r-none sm:rounded-l-md outline-none focus:border-gold-500/50 transition-colors text-sm"
                 />
-                <button className="bg-gold-gradient text-navy-950 px-5 py-3 sm:py-0 rounded-md sm:rounded-l-none sm:rounded-r-md font-semibold hover:shadow-gold-glow transition-all flex items-center justify-center">
+                <button className="bg-gold-gradient text-emerald-1000 px-5 py-3 sm:py-0 rounded-md sm:rounded-l-none sm:rounded-r-md font-semibold hover:shadow-gold-glow transition-all flex items-center justify-center">
                   <span className="sm:hidden mr-2">Subscribe</span>
                   <ArrowRight size={18} />
                 </button>
@@ -153,3 +153,5 @@ export default function Footer() {
     </footer>
   );
 }
+
+

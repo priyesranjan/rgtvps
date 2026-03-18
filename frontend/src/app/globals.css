@@ -2,13 +2,18 @@
 
 @theme {
   /* Core Colors */
-  --color-navy-50: #eaebef;
-  --color-navy-100: #d5d8e0;
-  --color-navy-500: #3f4b66;
-  --color-navy-700: #1b2644;
-  --color-navy-800: #10172b;
-  --color-navy-900: #0a1128;
-  --color-navy-950: #050814;
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #064e3b;
+  --color-emerald-900: #022c22;
+  --color-emerald-950: #011511;
+  --color-emerald-1000: #000806;
   
   --color-gold-50: #fdfbf0;
   --color-gold-100: #faf5d9;
@@ -30,7 +35,7 @@
 
 @layer base {
   body {
-    background-color: var(--color-navy-950);
+    background-color: var(--color-emerald-1000);
     color: white;
     overflow-x: hidden;
   }
@@ -45,11 +50,11 @@
   .bg-gold-gradient {
     background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #96711B 100%);
   }
-  .bg-navy-gradient {
-    background: linear-gradient(180deg, #10172b 0%, #0a1128 100%);
+  .bg-emerald-gradient {
+    background: linear-gradient(180deg, #011511 0%, #000806 100%);
   }
   .bg-glass {
-    background: rgba(10, 17, 40, 0.4);
+    background: rgba(1, 13, 10, 0.4);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(212, 175, 55, 0.1);
@@ -77,3 +82,5 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
+
+

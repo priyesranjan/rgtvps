@@ -39,7 +39,7 @@ export default function Navbar() {
       className={cn(
         "fixed top-0 w-full z-50 transition-all duration-500",
         isScrolled
-          ? "bg-navy-950/80 backdrop-blur-md border-b border-gold-500/10 shadow-lg"
+          ? "bg-emerald-1000/80 backdrop-blur-md border-b border-gold-500/10 shadow-lg"
           : "bg-transparent"
       )}
     >
@@ -130,7 +130,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="absolute top-0 left-0 w-full h-screen bg-navy-950/95 backdrop-blur-xl z-40 flex flex-col items-center justify-center gap-8"
+            className="absolute top-0 left-0 w-full h-screen bg-emerald-1000/95 backdrop-blur-xl z-40 flex flex-col items-center justify-center gap-8"
           >
             {navLinks.map((link, i) => {
               const isActive = pathname === link.href;
@@ -167,3 +167,5 @@ export default function Navbar() {
     </header>
   );
 }
+
+

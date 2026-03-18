@@ -5,6 +5,8 @@ import {
   Tooltip, ResponsiveContainer
 } from "recharts";
 
+import { formatCurrency } from "@/lib/utils";
+
 interface Props {
   data: { name: string; aum: number }[];
 }
@@ -22,11 +24,15 @@ export default function AdminAUMChart({ data }: Props) {
         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
         <XAxis dataKey="name" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false}
-          tickFormatter={(v) => `₹${v}Cr`} />
+          tickFormatter={(v) => {
+            if (v >= 10000000) return `₹${(v / 10000000).toFixed(1)}Cr`;
+            if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+            if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
+            return `₹${v}`;
+          }} />
         <Tooltip
           contentStyle={{ backgroundColor: "#0B1120", borderColor: "#D4AF37", borderRadius: "8px", color: "#fff" }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(value: any) => [`₹${Number(value ?? 0)} Crore`, "Total AUM"]}
+          formatter={(value: any) => [formatCurrency(value), "Total Gold Advance"]}
         />
         <Area type="monotone" dataKey="aum" stroke="#D4AF37" strokeWidth={3}
           fillOpacity={1} fill="url(#aumGradient)" dot={{ fill: "#D4AF37", r: 4, strokeWidth: 0 }}
@@ -35,3 +41,5 @@ export default function AdminAUMChart({ data }: Props) {
     </ResponsiveContainer>
   );
 }
+
+

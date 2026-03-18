@@ -30,7 +30,7 @@ export default function RootLayout({
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <body
         suppressHydrationWarning
-        className={cn(`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans bg-navy-950 text-white min-h-screen overflow-x-hidden`)}
+        className={cn(`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans bg-emerald-1000 text-white min-h-screen overflow-x-hidden`)}
       >
         {/* Premium gold progress bar on every navigation click */}
         <NextTopLoader
@@ -52,3 +52,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+
