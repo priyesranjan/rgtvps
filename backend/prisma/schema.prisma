@@ -1,6 +1,3 @@
-// Royal Gold Traders — Prisma Schema (v2)
-// Added: FeatureFlag, Referral, ReferralEarning, TECH_TEAM role, referralCode on User
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,206 +10,222 @@ datasource db {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum Role {
-  INVESTOR
-  EMPLOYEE
-  MANAGER
+  CUSTOMER
+  STAFF
   ADMIN
-  TECH_TEAM
 }
 
-enum InvestmentStatus {
+enum GoldAdvanceStatus {
   ACTIVE
   CLOSED
-  SUSPENDED
 }
 
-enum TxType {
+enum TransactionType {
   DEPOSIT
-  YIELD_PAYOUT
   WITHDRAWAL
-  REFERRAL_COMMISSION
+  PROFIT
+  REFERRAL
+  STAFF_COMMISSION
+  GOLD_ADVANCE // Legacy mapping
+  DAILY_RETURN // Legacy mapping
+  REFERRAL_REWARD // Legacy mapping
 }
 
-// ─── Branch ──────────────────────────────────────────────────────────────────
-
-model Branch {
-  id        String     @id @default(cuid())
-  name      String
-  city      String
-  code      String     @unique
-  employees Employee[]
-  createdAt DateTime   @default(now())
+enum WithdrawalSource {
+  BALANCE
+  GOLD_ADVANCE
+  PROFIT
+  REFERRAL
 }
 
-// ─── Employee ─────────────────────────────────────────────────────────────────
-
-model Employee {
-  id           String   @id @default(cuid())
-  name         String
-  employeeCode String   @unique
-  email        String   @unique
-  passwordHash String
-  role         Role     // EMPLOYEE | MANAGER | ADMIN | TECH_TEAM
-  mobile       String?
-  isActive     Boolean  @default(true)
-
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  totalLeadsCount  Int @default(0)
-  monthlyLeadCount Int @default(0)
-
-  processedInvestments Investment[]    @relation("DepositProcessor")
-  createdAccounts      User[]          @relation("AccountCreator")
-  rateChanges          RateChangeLog[]
-  referralsSet         Referral[]      // referrals where this employee set the commission
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
-// ─── User (Investor) ─────────────────────────────────────────────────────────
+enum AuditAction {
+  CUSTOMER_CREATED
+  GOLD_ADVANCE_DEPOSITED
+  GOLD_ADVANCE_WITHDRAWN
+  STAFF_ASSIGNED
+  STAFF_REASSIGNED
+  CUSTOMER_UPDATED
+  WITHDRAWAL_REQUEST_CREATED
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  STAFF_CREATED
+  REFERRAL_LINKED
+  PROFIT_DISTRIBUTED
+  WALLET_ADJUSTED
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
-  id           String  @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
-  mobile       String? @unique
-  email        String? @unique
-  passwordHash String  @default("")
-  role         Role    @default(INVESTOR)
-  isActive     Boolean @default(true)
+  email        String   @unique
+  password     String
+  role         Role     @default(CUSTOMER)
+  
+  // Professional / Identity Details
+  contactNo    String?  @unique
+  mobile       String?  @unique // For legacy compatibility
+  aadharNo     String?
+  aadhar       String?  // For legacy compatibility
+  pan          String?
+  address      String?
+  photo        String?
+  gender       String?
+  dob          DateTime?
+  
+  initialGoldAdvanceAmount Decimal? @db.Decimal(15, 2)
+  
+  referredBy   String?
+  staffId      String?
+  
+  wallet        Wallet?
+  goldAdvances  GoldAdvance[]
+  transactions Transaction[]
+  withdrawals  WithdrawalRequest[]
+  
+  // Relations
+  referrer     User?    @relation("ReferrerRelation", fields: [referredBy], references: [id])
+  referrals    User[]   @relation("ReferrerRelation")
+  assignedStaff User?   @relation("StaffRelation", fields: [staffId], references: [id])
+  customers     User[]   @relation("StaffRelation")
 
-  // Attribution: which employee registered this investor
-  createdByEmployeeId String?
-  createdByEmployee   Employee? @relation("AccountCreator", fields: [createdByEmployeeId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  // Referral system
-  referralCode   String?  @unique // e.g. "RGT-REF-PRIYES" — auto-generated on account creation
-  referredByCode String?           // referral code used when this account was opened
-
-  otpSessionId String?  // For 2Factor SMS verification
-
-  investments      Investment[]
-  referralsGiven   Referral[]   @relation("ReferrerRelation")
-  referralReceived Referral?    @relation("ReferredRelation")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([staffId])
+  @@index([role])
+  @@index([email])
 }
 
-// ─── Investment (one row = one deposit tranche) ───────────────────────────────
+// ─── Wallet ──────────────────────────────────────────────────────────────────
 
-model Investment {
-  id String @id @default(cuid())
+model Wallet {
+  id                     String  @id @default(cuid())
+  userId                 String  @unique
+  user                   User    @relation(fields: [userId], references: [id])
+  goldAdvanceAmount      Decimal @default(0) @db.Decimal(15, 2)
+  profitAmount           Decimal @default(0) @db.Decimal(15, 2)
+  referralAmount         Decimal @default(0) @db.Decimal(15, 2)
+  totalWithdrawable      Decimal @default(0) @db.Decimal(15, 2)
+  
+  // Legacy fields (optional migration path)
+  balance                Decimal @default(0) @db.Decimal(15, 2)
+  dailyReturnBalance     Decimal @default(0) @db.Decimal(15, 2)
+  referralBalance        Decimal @default(0) @db.Decimal(15, 2)
+  staffCommissionBalance Decimal @default(0) @db.Decimal(15, 2)
+}
 
-  investorId String
-  investor   User   @relation(fields: [investorId], references: [id])
+// ─── Gold Advance ─────────────────────────────────────────────────────────────
 
-  processedByEmployeeId String
-  processedByEmployee   Employee @relation("DepositProcessor", fields: [processedByEmployeeId], references: [id])
-  processedAt           DateTime @default(now())
-
-  leadSource String?
-
-  principalAmount Decimal @db.Decimal(15, 2)
-  interestRate    Decimal @db.Decimal(5, 2)
-  currentRate     Decimal @db.Decimal(5, 2)
-
-  status        InvestmentStatus @default(ACTIVE)
+model GoldAdvance {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id])
+  advanceAmount Decimal          @db.Decimal(15, 2)
   startDate     DateTime         @default(now())
-  lastYieldDate DateTime?
+  status        GoldAdvanceStatus @default(ACTIVE)
+  
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
-  rateChangeLogs RateChangeLog[]
-  transactions   Transaction[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([status])
 }
 
-// ─── RateChangeLog ────────────────────────────────────────────────────────────
-
-model RateChangeLog {
-  id           String     @id @default(cuid())
-  investmentId String
-  investment   Investment @relation(fields: [investmentId], references: [id])
-
-  oldRate Decimal @db.Decimal(5, 2)
-  newRate Decimal @db.Decimal(5, 2)
-  reason  String?
-
-  changedByEmployeeId String
-  changedByEmployee   Employee @relation(fields: [changedByEmployeeId], references: [id])
-  changedByRole       Role
-
-  changedAt DateTime @default(now())
-}
-
-// ─── Transaction ──────────────────────────────────────────────────────────────
+// ─── Transaction ─────────────────────────────────────────────────────────────
 
 model Transaction {
-  id           String      @id @default(cuid())
-  investmentId String?
-  investment   Investment? @relation(fields: [investmentId], references: [id])
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  type        TransactionType
+  amount      Decimal         @db.Decimal(15, 2)
+  balanceAfter Decimal        @default(0) @db.Decimal(15, 2)
+  description String?
+  
+  createdAt   DateTime        @default(now())
 
-  type   TxType
-  amount Decimal @db.Decimal(15, 2)
-  note   String?
-
-  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
 }
 
-// ─── Referral ─────────────────────────────────────────────────────────────────
-// Links referrer ↔ referred investor. Commission set manually by Manager/Admin.
+// ─── WithdrawalRequest ───────────────────────────────────────────────────────
+
+model WithdrawalRequest {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  amount    Decimal          @db.Decimal(15, 2)
+  source    WithdrawalSource @default(PROFIT)
+  status    WithdrawalStatus @default(PENDING)
+  
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─── AuditLog ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id                String   @id @default(cuid())
+  actionType        AuditAction
+  entityType        String
+  entityId          String
+  performedByUserId String?
+  performedByRole   Role?
+  description       String?
+  previousData      Json?
+  newData           Json?
+  comment           String?
+  ipAddress         String?
+  createdAt         DateTime @default(now())
+}
+
+// ─── Referral ────────────────────────────────────────────────────────────────
 
 model Referral {
   id             String @id @default(cuid())
   referrerId     String
-  referrer       User   @relation("ReferrerRelation", fields: [referrerId], references: [id])
-  referredUserId String @unique
-  referredUser   User   @relation("ReferredRelation", fields: [referredUserId], references: [id])
-
-  // Commission set manually by Manager/Admin
-  commissionAmount Decimal @db.Decimal(10, 2)
-  commissionNote   String? // "Agreed ₹500/month while Ranjan's portfolio active"
-
-  setByEmployeeId String
-  setByEmployee   Employee @relation(fields: [setByEmployeeId], references: [id])
-  setAt           DateTime @default(now())
-
-  isActive Boolean @default(true) // set false when referred investor closes all investments
-
-  earnings  ReferralEarning[]
-  createdAt DateTime          @default(now())
+  referredUserId String
 }
 
-// ─── ReferralEarning ──────────────────────────────────────────────────────────
-// Each individual commission credit to the referrer. Full audit trail.
+// ─── StaffCommission ────────────────────────────────────────────────────────
 
-model ReferralEarning {
+model StaffCommission {
   id         String   @id @default(cuid())
-  referralId String
-  referral   Referral @relation(fields: [referralId], references: [id])
+  staffId    String
+  customerId String
+  amount     Decimal  @db.Decimal(15, 2)
+  
+  createdAt  DateTime @default(now())
 
-  amount      Decimal @db.Decimal(10, 2)
-  note        String? // "Monthly commission — March 2026"
-  isWithdrawn Boolean @default(false)
+  @@index([staffId])
+  @@index([customerId])
+}
 
+// ─── DailyProfitLog (System Log) ─────────────────────────────────────────────
+
+model DailyProfitLog {
+  id        String   @id @default(cuid())
+  date      String   @unique // Format: YYYY-MM-DD
+  status    String   // SUCCESS, FAILED
+  processed Int
   createdAt DateTime @default(now())
 }
 
-// ─── FeatureFlag ─────────────────────────────────────────────────────────────
-// Tech Team (Level 5) controls all platform features via DB-stored toggles.
-// No code deploy needed — flip toggle in Tech Team dashboard to go live.
-
-model FeatureFlag {
-  id          String  @id @default(cuid())
-  key         String  @unique // e.g. "REFER_EARN", "MANAGER_ROLE"
-  label       String          // human-readable name shown in Tech Team UI
-  description String?
-  isEnabled   Boolean @default(true)
-  category    String  @default("FEATURE") // "ROLE" | "FEATURE" | "NOTIFICATION" | "CUSTOM"
-
-  updatedBy String?  // Tech Team member who last changed this
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model SystemSetting {
+  id            String  @id @default("default")
+  showGST       Boolean @default(true)
+  gstPercentage Decimal @default(18.0) @db.Decimal(5, 2)
+  updatedAt     DateTime @updatedAt
 }
