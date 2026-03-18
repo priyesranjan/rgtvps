@@ -73,7 +73,7 @@ authRouter.post("/investor/login", async (req, res: Response) => {
 
     // Send Login Alert if enabled
     if (await FeatureFlags.isEnabled("SMS_ALERTS")) {
-      await SMSService.sendAlert(user.mobile, "RGT_LOGIN", [
+      await SMSService.sendAlert(user.mobile ?? "", "RGT_LOGIN", [
         user.name,
         new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
       ]);
@@ -160,7 +160,7 @@ authRouter.post("/otp/verify", async (req, res: Response) => {
 
     // Send Login Alert if enabled
     if (await FeatureFlags.isEnabled("SMS_ALERTS")) {
-      await SMSService.sendAlert(user.mobile, "RGT_LOGIN", [
+      await SMSService.sendAlert(user.mobile ?? "", "RGT_LOGIN", [
         user.name,
         new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
       ]);
