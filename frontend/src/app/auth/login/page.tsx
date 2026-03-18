@@ -10,50 +10,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-const DEMO_ACCOUNTS = [
-  {
-    role: "Investor",
-    email: "investor@rgt.com",
-    mobile: "9988776655",
-    password: "investor123",
-    redirect: "/dashboard/investor",
-    icon: User,
-    color: "text-gray-400",
-    border: "border-gray-500/30 hover:border-gray-400/60",
-    badge: "bg-gray-500/10 text-gray-300",
-  },
-  {
-    role: "Employee",
-    email: "employee@rgt.com",
-    password: "employee123",
-    redirect: "/dashboard/employee",
-    icon: Briefcase,
-    color: "text-blue-400",
-    border: "border-blue-500/30 hover:border-blue-400/60",
-    badge: "bg-blue-500/10 text-blue-300",
-  },
-  {
-    role: "Manager",
-    email: "manager@rgt.com",
-    password: "manager123",
-    redirect: "/dashboard/manager",
-    icon: Settings,
-    color: "text-purple-400",
-    border: "border-purple-500/30 hover:border-purple-400/60",
-    badge: "bg-purple-500/10 text-purple-300",
-  },
-  {
-    role: "Admin",
-    email: "admin@rgt.com",
-    password: "admin@secure",
-    redirect: "/dashboard/admin",
-    icon: ShieldCheck,
-    color: "text-gold-400",
-    border: "border-gold-500/30 hover:border-gold-500/60",
-    badge: "bg-gold-500/10 text-gold-300",
-  },
-];
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function LoginPage() {
