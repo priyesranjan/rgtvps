@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  /* Core Colors */
+  --color-navy-50: #eaebef;
+  --color-navy-100: #d5d8e0;
+  --color-navy-500: #3f4b66;
+  --color-navy-700: #1b2644;
+  --color-navy-800: #10172b;
+  --color-navy-900: #0a1128;
+  --color-navy-950: #050814;
+  
+  --color-gold-50: #fdfbf0;
+  --color-gold-100: #faf5d9;
+  --color-gold-300: #f2e293;
+  --color-gold-500: #d4af37;
+  --color-gold-600: #bc9625;
+  --color-gold-700: #96711b;
+  --color-gold-900: #42300b;
+
+  /* Typography variables injected from layout.tsx */
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-heading);
+
+  /* Animations */
+  --animate-shimmer: shimmer 2.5s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-navy-950);
+    color: white;
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+  }
+}
+
+@layer utilities {
+  .bg-gold-gradient {
+    background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #96711B 100%);
+  }
+  .bg-navy-gradient {
+    background: linear-gradient(180deg, #10172b 0%, #0a1128 100%);
+  }
+  .bg-glass {
+    background: rgba(10, 17, 40, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+  }
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #96711B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .shadow-gold-glow {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+  }
+  .shadow-gold-glow-intense {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
