@@ -1,0 +1,218 @@
+// Royal Gold Traders — Prisma Schema (v2)
+// Added: FeatureFlag, Referral, ReferralEarning, TECH_TEAM role, referralCode on User
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  INVESTOR
+  EMPLOYEE
+  MANAGER
+  ADMIN
+  TECH_TEAM
+}
+
+enum InvestmentStatus {
+  ACTIVE
+  CLOSED
+  SUSPENDED
+}
+
+enum TxType {
+  DEPOSIT
+  YIELD_PAYOUT
+  WITHDRAWAL
+  REFERRAL_COMMISSION
+}
+
+// ─── Branch ──────────────────────────────────────────────────────────────────
+
+model Branch {
+  id        String     @id @default(cuid())
+  name      String
+  city      String
+  code      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+// ─── Employee ─────────────────────────────────────────────────────────────────
+
+model Employee {
+  id           String   @id @default(cuid())
+  name         String
+  employeeCode String   @unique
+  email        String   @unique
+  passwordHash String
+  role         Role     // EMPLOYEE | MANAGER | ADMIN | TECH_TEAM
+  mobile       String?
+  isActive     Boolean  @default(true)
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  totalLeadsCount  Int @default(0)
+  monthlyLeadCount Int @default(0)
+
+  processedInvestments Investment[]    @relation("DepositProcessor")
+  createdAccounts      User[]          @relation("AccountCreator")
+  rateChanges          RateChangeLog[]
+  referralsSet         Referral[]      // referrals where this employee set the commission
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── User (Investor) ─────────────────────────────────────────────────────────
+
+model User {
+  id           String  @id @default(cuid())
+  name         String
+  mobile       String  @unique
+  email        String? @unique
+  passwordHash String
+  role         Role    @default(INVESTOR)
+  isActive     Boolean @default(true)
+
+  // Attribution: which employee registered this investor
+  createdByEmployeeId String?
+  createdByEmployee   Employee? @relation("AccountCreator", fields: [createdByEmployeeId], references: [id])
+
+  // Referral system
+  referralCode   String?  @unique // e.g. "RGT-REF-PRIYES" — auto-generated on account creation
+  referredByCode String?           // referral code used when this account was opened
+
+  otpSessionId String?  // For 2Factor SMS verification
+
+  investments      Investment[]
+  referralsGiven   Referral[]   @relation("ReferrerRelation")
+  referralReceived Referral?    @relation("ReferredRelation")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Investment (one row = one deposit tranche) ───────────────────────────────
+
+model Investment {
+  id String @id @default(cuid())
+
+  investorId String
+  investor   User   @relation(fields: [investorId], references: [id])
+
+  processedByEmployeeId String
+  processedByEmployee   Employee @relation("DepositProcessor", fields: [processedByEmployeeId], references: [id])
+  processedAt           DateTime @default(now())
+
+  leadSource String?
+
+  principalAmount Decimal @db.Decimal(15, 2)
+  interestRate    Decimal @db.Decimal(5, 2)
+  currentRate     Decimal @db.Decimal(5, 2)
+
+  status        InvestmentStatus @default(ACTIVE)
+  startDate     DateTime         @default(now())
+  lastYieldDate DateTime?
+
+  rateChangeLogs RateChangeLog[]
+  transactions   Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── RateChangeLog ────────────────────────────────────────────────────────────
+
+model RateChangeLog {
+  id           String     @id @default(cuid())
+  investmentId String
+  investment   Investment @relation(fields: [investmentId], references: [id])
+
+  oldRate Decimal @db.Decimal(5, 2)
+  newRate Decimal @db.Decimal(5, 2)
+  reason  String?
+
+  changedByEmployeeId String
+  changedByEmployee   Employee @relation(fields: [changedByEmployeeId], references: [id])
+  changedByRole       Role
+
+  changedAt DateTime @default(now())
+}
+
+// ─── Transaction ──────────────────────────────────────────────────────────────
+
+model Transaction {
+  id           String     @id @default(cuid())
+  investmentId String
+  investment   Investment @relation(fields: [investmentId], references: [id])
+
+  type   TxType
+  amount Decimal @db.Decimal(15, 2)
+  note   String?
+
+  createdAt DateTime @default(now())
+}
+
+// ─── Referral ─────────────────────────────────────────────────────────────────
+// Links referrer ↔ referred investor. Commission set manually by Manager/Admin.
+
+model Referral {
+  id             String @id @default(cuid())
+  referrerId     String
+  referrer       User   @relation("ReferrerRelation", fields: [referrerId], references: [id])
+  referredUserId String @unique
+  referredUser   User   @relation("ReferredRelation", fields: [referredUserId], references: [id])
+
+  // Commission set manually by Manager/Admin
+  commissionAmount Decimal @db.Decimal(10, 2)
+  commissionNote   String? // "Agreed ₹500/month while Ranjan's portfolio active"
+
+  setByEmployeeId String
+  setByEmployee   Employee @relation(fields: [setByEmployeeId], references: [id])
+  setAt           DateTime @default(now())
+
+  isActive Boolean @default(true) // set false when referred investor closes all investments
+
+  earnings  ReferralEarning[]
+  createdAt DateTime          @default(now())
+}
+
+// ─── ReferralEarning ──────────────────────────────────────────────────────────
+// Each individual commission credit to the referrer. Full audit trail.
+
+model ReferralEarning {
+  id         String   @id @default(cuid())
+  referralId String
+  referral   Referral @relation(fields: [referralId], references: [id])
+
+  amount      Decimal @db.Decimal(10, 2)
+  note        String? // "Monthly commission — March 2026"
+  isWithdrawn Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+// ─── FeatureFlag ─────────────────────────────────────────────────────────────
+// Tech Team (Level 5) controls all platform features via DB-stored toggles.
+// No code deploy needed — flip toggle in Tech Team dashboard to go live.
+
+model FeatureFlag {
+  id          String  @id @default(cuid())
+  key         String  @unique // e.g. "REFER_EARN", "MANAGER_ROLE"
+  label       String          // human-readable name shown in Tech Team UI
+  description String?
+  isEnabled   Boolean @default(true)
+  category    String  @default("FEATURE") // "ROLE" | "FEATURE" | "NOTIFICATION" | "CUSTOM"
+
+  updatedBy String?  // Tech Team member who last changed this
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
