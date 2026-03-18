@@ -76,9 +76,9 @@ model Employee {
 model User {
   id           String  @id @default(cuid())
   name         String
-  mobile       String  @unique
+  mobile       String? @unique
   email        String? @unique
-  passwordHash String
+  passwordHash String  @default("")
   role         Role    @default(INVESTOR)
   isActive     Boolean @default(true)
 
@@ -150,9 +150,9 @@ model RateChangeLog {
 // ─── Transaction ──────────────────────────────────────────────────────────────
 
 model Transaction {
-  id           String     @id @default(cuid())
-  investmentId String
-  investment   Investment @relation(fields: [investmentId], references: [id])
+  id           String      @id @default(cuid())
+  investmentId String?
+  investment   Investment? @relation(fields: [investmentId], references: [id])
 
   type   TxType
   amount Decimal @db.Decimal(15, 2)
