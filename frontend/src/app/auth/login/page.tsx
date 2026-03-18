@@ -82,10 +82,10 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const endpoint = activeRole === "Investor" || !activeRole ? "/auth/investor/login" : "/auth/employee/login";
-      const body = activeRole === "Investor" || !activeRole 
-        ? { mobile: email.includes("@") ? "" : email, password } 
-        : { email, password };
+      const endpoint = email.includes("@") ? "/auth/employee/login" : "/auth/investor/login";
+      const body = email.includes("@")
+        ? { email, password }
+        : { mobile: email, password };
       
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
