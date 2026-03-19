@@ -39,7 +39,9 @@ COPY prisma ./prisma
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Generate the Prisma database client for the final image
+RUN npx prisma generate
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
