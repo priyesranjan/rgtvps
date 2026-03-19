@@ -48,12 +48,15 @@ export class GoldAdvanceService {
       const updatedWallet = await WalletService.getOrCreateWallet(userId, tx);
       const balanceAfter = Number(updatedWallet.totalWithdrawable);
 
+      const paddedNo = `RGT-${String(goldAdvance.invoiceNo).padStart(6, '0')}`;
       await tx.transaction.create({
         data: {
           userId,
+          entityId: goldAdvance.id,
+          performedById: userId, // Performed by the customer themselves
           type: TransactionType.DEPOSIT,
           amount,
-          description: `Gold Advance of ${amount} created from wallet balance. Ref: #${goldAdvance.id}`,
+          description: `Gold Advance deposit created. Ref: #${paddedNo}`,
           balanceAfter,
         },
       });
@@ -97,12 +100,15 @@ export class GoldAdvanceService {
       const wallet = await WalletService.getOrCreateWallet(userId, tx);
       const balanceAfter = Number(wallet.totalWithdrawable);
 
+      const paddedNo = `RGT-${String(goldAdvance.invoiceNo).padStart(6, '0')}`;
       await tx.transaction.create({
         data: {
           userId,
+          entityId: goldAdvance.id,
+          performedById: performedByUserId,
           type: TransactionType.DEPOSIT,
           amount,
-          description: description.includes("#") ? description : `${description}. Ref: #${goldAdvance.id}`,
+          description: `${description}. Ref: #${paddedNo}`,
           balanceAfter,
         },
       });

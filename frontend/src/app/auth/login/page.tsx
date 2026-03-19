@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +55,22 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const router = useRouter();
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userJson = localStorage.getItem("user");
+    if (token && userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        if (user.role === "CUSTOMER") router.push("/dashboard/investor");
+        else if (user.role === "STAFF") router.push("/dashboard/staff");
+        else if (user.role === "ADMIN") router.push("/dashboard/admin");
+      } catch (e) {
+        localStorage.clear();
+      }
+    }
+  }, [router]);
 
   const handleQuickFill = (account: typeof DEMO_ACCOUNTS[0]) => {
     setEmail(account.email);

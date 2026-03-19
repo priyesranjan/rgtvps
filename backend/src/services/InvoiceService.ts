@@ -13,6 +13,13 @@ export class InvoiceService {
       include: { user: true }
     });
 
+    // Fetch the performer from the transaction table
+    const transaction = await prisma.transaction.findFirst({
+      where: { entityId: advanceId, type: "DEPOSIT" },
+      include: { performedBy: true }
+    });
+    const performedByName = transaction?.performedBy?.name || "System Automated";
+
     if (!advance) {
       console.error(`❌ [InvoiceService] Gold Advance not found for ID: ${advanceId}`);
       throw new Error("Gold Advance not found");
@@ -20,6 +27,7 @@ export class InvoiceService {
 
     return await this.generateCommonHtml({
       id: advanceId,
+      invoiceNo: advance.invoiceNo,
       type: "DEPOSIT RECEIPT",
       date: advance.createdAt,
       user: advance.user,
@@ -27,7 +35,8 @@ export class InvoiceService {
       description: "Gold Advance Deposit (NotePro GS8000V)",
       hsn: "847290",
       refLabel: "Advance ID",
-      isTaxable: true
+      isTaxable: true,
+      performedByName
     });
   }
 
@@ -41,6 +50,13 @@ export class InvoiceService {
       include: { user: true }
     });
 
+    // Fetch the performer (Admin who approved) from the transaction table
+    const transaction = await prisma.transaction.findFirst({
+      where: { entityId: withdrawalId, type: "WITHDRAWAL" },
+      include: { performedBy: true }
+    });
+    const performedByName = transaction?.performedBy?.name || "System Automated";
+
     if (!withdrawal) {
       console.error(`❌ [InvoiceService] Withdrawal not found for ID: ${withdrawalId}`);
       throw new Error("Withdrawal not found");
@@ -48,6 +64,7 @@ export class InvoiceService {
 
     return await this.generateCommonHtml({
       id: withdrawalId,
+      invoiceNo: withdrawal.invoiceNo,
       type: "WITHDRAWAL VOUCHER",
       date: withdrawal.createdAt,
       user: withdrawal.user,
@@ -55,7 +72,8 @@ export class InvoiceService {
       description: `Withdrawal Payout (Source: ${withdrawal.source})`,
       hsn: "NIL",
       refLabel: "Withdrawal ID",
-      isTaxable: false
+      isTaxable: false,
+      performedByName
     });
   }
 
@@ -68,6 +86,7 @@ export class InvoiceService {
 
   private static async generateCommonHtml(data: {
     id: string;
+    invoiceNo: number;
     type: string;
     date: Date;
     user: any;
@@ -76,6 +95,7 @@ export class InvoiceService {
     hsn: string;
     refLabel: string;
     isTaxable: boolean;
+    performedByName: string;
   }) {
     // ── Fetch Global Settings ────────────────────────────────────────────────
     let settings = await prisma.systemSetting.findUnique({ where: { id: "default" } });
@@ -104,6 +124,7 @@ export class InvoiceService {
     const adjustedTaxable = taxableAmt + diff;
 
     const amountInWords = this.numberToWords(totalAmount);
+    const paddedInvoiceNo = `RGT-${String(data.invoiceNo).padStart(6, '0')}`;
 
     const dateStr = new Date(data.date).toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -120,7 +141,7 @@ export class InvoiceService {
     let logoBase64 = "";
     try {
       // Path to the SVG logo in the frontend public folder
-      const logoPath = path.join(__dirname, "../../../royalgoldtraders/public/RoyalGoldTrader-Logo.svg");
+      const logoPath = path.join(__dirname, "../../../frontend/public/RoyalGoldTrader-Logo.svg");
       const logoData = fs.readFileSync(logoPath);
       logoBase64 = logoData.toString('base64');
     } catch (error) {
@@ -133,7 +154,7 @@ export class InvoiceService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${data.type} - ${data.id}</title>
+    <title>${data.type} - ${paddedInvoiceNo}</title>
     <style>
         @page { size: A4; margin: 8mm; }
         body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #1a1a1a; font-size: 10.5pt; line-height: 1.35; }
@@ -157,12 +178,10 @@ export class InvoiceService {
         th, td { border: 1px solid #000; padding: 8px; text-align: left; overflow: hidden; }
         th { background: #f0f0f0; font-weight: bold; font-size: 9pt; text-transform: uppercase; }
         
-        .items-table th:nth-child(1) { width: 35px; }
-        .items-table th:nth-child(3) { width: 80px; }
-        .items-table th:nth-child(4) { width: 45px; }
-        .items-table th:nth-child(5) { width: 55px; }
-        .items-table th:nth-child(6) { width: 95px; }
-        .items-table th:nth-child(7) { width: 110px; }
+        .items-table th:nth-child(1) { width: 45px; }
+        .items-table th:nth-child(2) { width: auto; }
+        .items-table th:nth-child(3) { width: 140px; }
+        .items-table th:nth-child(4) { width: 160px; }
         
         /* Totals */
         .totals-section { display: flex; border-bottom: 1px solid #000; }
@@ -205,7 +224,7 @@ export class InvoiceService {
             <div style="flex: 0.9; text-align: right; padding: 15px; border-left: 1.5px solid #000; background: #f9f9f9; display: flex; flex-direction: column; justify-content: center;">
                 <h2 style="margin: 0; color: #000; font-size: 14pt; font-weight: 800; text-transform: uppercase;">${data.type}</h2>
                 <div style="margin-top: 6px; border-top: 1px solid #ddd; padding-top: 6px;">
-                    <p style="margin: 0; font-size: 8.5pt; font-weight: bold; color: #555;">REF NO: <span style="color: #000; font-size: 10.5pt;">${data.id.slice(-10).toUpperCase()}</span></p>
+                    <p style="margin: 0; font-size: 8.5pt; font-weight: bold; color: #555;">REF NO: <span style="color: #000; font-size: 10.5pt;">${paddedInvoiceNo}</span></p>
                 </div>
             </div>
         </div>
@@ -213,8 +232,9 @@ export class InvoiceService {
         <!-- DETAILS -->
         <div class="section" style="background: #fafafa; font-size: 10pt;">
             <div class="col col-border">
-                <p><strong>Transaction ID:</strong> <span style="font-family: monospace; font-size: 9pt;">${data.id}</span></p>
+                <p><strong>Transaction ID:</strong> <span style="font-family: monospace; font-size: 9pt;">${paddedInvoiceNo}</span></p>
                 <p><strong>Date:</strong> ${dateStr} &nbsp;|&nbsp; <strong>Time:</strong> ${timeStr}</p>
+                <p><strong>Processed by:</strong> ${data.performedByName}</p>
                 <p><strong>Place:</strong> Patna, Bihar (10)</p>
             </div>
             <div class="col" style="flex: 0.7;">
@@ -243,11 +263,8 @@ export class InvoiceService {
                 <tr>
                     <th class="center">#</th>
                     <th>Description of Service / Transaction</th>
-                    <th>HSN/SAC</th>
-                    <th class="center">Qty</th>
-                    <th class="center">Unit</th>
-                    <th class="right">Base Rate</th>
-                    <th class="right">Total ₹</th>
+                    <th class="right">Base Amount (₹)</th>
+                    <th class="right">Total (₹)</th>
                 </tr>
             </thead>
             <tbody>
@@ -256,16 +273,13 @@ export class InvoiceService {
                     <td style="padding-top: 15px;">
                         <p class="bold" style="font-size: 11.5pt; color: #000; margin-bottom: 5px;">${data.description}</p>
                         <p style="font-size: 9pt; color: #666; margin-top: 12px; border-left: 2px solid #d4af37; padding-left: 8px;">
-                            ${data.refLabel}: ${data.id}<br>
+                            ${data.refLabel}: ${paddedInvoiceNo}<br>
                             Purpose: Electronic Fund Management
                         </p>
                         <p style="font-size: 8.5pt; color: #888; margin-top: 15px; font-style: italic;">
                             Note: This transaction is processed securely through Royal Gold Traders ecosystem.
                         </p>
                     </td>
-                    <td class="center" style="padding-top: 15px;">${data.hsn}</td>
-                    <td class="center" style="padding-top: 15px;">1.00</td>
-                    <td class="center" style="padding-top: 15px;">UNIT</td>
                     <td class="right" style="padding-top: 15px;">${adjustedTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                     <td class="right" style="padding-top: 15px;">${adjustedTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
@@ -321,11 +335,12 @@ export class InvoiceService {
         <div class="footer-cols">
             <div class="qr-area" style="border-right: 1px solid #000;">
                 <div class="qr-placeholder">E-SIGN<br>VERIFIED</div>
-                <p style="font-size: 6pt; color: #999; margin: 0;">Digital ID: RG-${data.id.slice(-6)}</p>
+                <p style="font-size: 6pt; color: #999; margin: 0;">Digital ID: RG-${String(data.invoiceNo).padStart(6, '0')}</p>
             </div>
             <div style="flex: 2; padding: 10px; display: flex; flex-direction: column; justify-content: center;">
                 <p style="margin: 0; font-size: 7.5pt; color: #666; line-height: 1.4;">
                     * This is a computer generated document and does not require a physical signature.<br>
+                    * Printed on: ${new Date().toLocaleString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}<br>
                     * For any discrepancies, please contact us at support@royalgoldtraders.com within 24 hours.<br>
                     * Terms & Conditions apply as per the system user agreement.
                 </p>

@@ -122,14 +122,17 @@ export class WithdrawalService {
       // 3. Log transaction
       const updatedWallet = await WalletService.getOrCreateWallet(request.userId, tx);
       const balanceAfter = Number(updatedWallet.totalWithdrawable);
+      const paddedNo = `RGT-${String(updated.invoiceNo).padStart(6, '0')}`;
 
       await tx.transaction.create({
         data: {
           userId: request.userId,
+          entityId: request.id,
+          performedById: adminId,
           type: TransactionType.WITHDRAWAL,
           amount: request.amount,
           balanceAfter,
-          description: `Withdrawal from ${request.source} approved (Request #${request.id})`,
+          description: `Withdrawal from ${request.source} approved. Ref: #${paddedNo}`,
         },
       });
 

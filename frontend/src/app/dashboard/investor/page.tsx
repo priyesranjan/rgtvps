@@ -219,6 +219,7 @@ function TransactionTable({ rows, onDownload }: { rows: any[]; onDownload: (tx: 
               <th className="p-4 pl-6">Type</th>
               <th className="p-4 hidden sm:table-cell">Date</th>
               <th className="p-4">Amount</th>
+              <th className="p-4">Processed By</th>
               <th className="p-4 hidden md:table-cell">Status</th>
               <th className="p-4 pr-6 text-right">Receipt</th>
             </tr>
@@ -236,6 +237,7 @@ function TransactionTable({ rows, onDownload }: { rows: any[]; onDownload: (tx: 
                 </td>
                 <td className="p-4 text-gray-400 text-sm hidden sm:table-cell">{tx.date}</td>
                 <td className={`p-4 font-medium ${tx.amountColor}`}>{tx.amount}</td>
+                <td className="p-4 text-xs text-gray-500">{tx.processedBy || "SYSTEM"}</td>
                 <td className="p-4 hidden md:table-cell">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${tx.statusColor === "green" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"}`}>
                     {tx.status}
@@ -364,6 +366,7 @@ export default function InvestorDashboardPage() {
         rawType: tx.type, // Keep raw type for logic
         icon, iconBg, iconColor, amountColor,
         status, statusColor,
+        processedBy: tx.performedBy?.name,
         date: new Date(tx.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
         amount: Number(tx.amount)
       };
@@ -440,8 +443,16 @@ export default function InvestorDashboardPage() {
     const txsUpTo = sortedTxsForChart.filter(tx => new Date(tx.createdAt) <= endOfMonth);
     const latestTx = txsUpTo[txsUpTo.length - 1];
     
-    // Total Portfolio = latest balanceAfter (cumulative total)
-    const withdrawable = latestTx ? Number(latestTx.balanceAfter) : (realChartData.length > 0 ? realChartData[realChartData.length - 1].withdrawable : 0);
+    // Total Portfolio = cumulative total of all credits minus debits
+    const withdrawable = txsUpTo.reduce((sum, tx) => {
+      if (tx.type === "DEPOSIT" || tx.type === "GOLD_ADVANCE" || tx.type === "PROFIT" || tx.type === "REFERRAL") {
+        return sum + Number(tx.amount);
+      }
+      if (tx.type === "WITHDRAWAL") {
+        return sum - Number(tx.amount);
+      }
+      return sum;
+    }, 0);
     
     // Total Capital = sum of all DEPOSIT/GOLD_ADVANCE minus capital withdrawals
     const goldAdvance = txsUpTo
@@ -542,7 +553,7 @@ export default function InvestorDashboardPage() {
                   {/* Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
                     {[
-                      { icon: Wallet, color: "text-gold-400", label: "Main Vault Balance", value: formatCurrency(mainVaultBalance), sub: "Total Withdrawable", subColor: "text-green-400", pill: true },
+                      { icon: Wallet, color: "text-gold-400", label: "Main Vault Balance", value: formatCurrency(mainVaultBalance), sub: `Total Withdrawable: ${formatCurrency(mainVaultBalance)}`, subColor: "text-green-400", pill: true },
                       { icon: ShieldCheck, color: "text-gold-400", label: "Total Gold Advance", value: formatCurrency(userData?.totalGoldAdvanceAmount || 0), sub: `Active Capital: ${formatCurrency(userData?.activeGoldAdvanceAmount || 0)}`, subColor: "text-gold-400", pill: false },
                       { icon: TrendingUp, color: "text-blue-400", label: "Total Profit Earned", value: formatCurrency(userData?.profitBalance || 0), sub: "Daily Distribution", subColor: "text-gray-500", pill: false },
                       { icon: ArrowDownRight, color: "text-purple-400", label: "Referral Earnings", value: formatCurrency(userData?.referralBalance || 0), sub: "Total Rewards", subColor: "text-gold-400", pill: false },
@@ -563,6 +574,9 @@ export default function InvestorDashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-heading font-semibold text-white flex items-center gap-2">
                         <LineChart className="w-5 h-5 text-gold-400" /> Yield Performance
+                        <span className="ml-2 text-xs font-normal text-gray-500">
+                          (Total Withdrawable: <span className="text-green-400 font-medium">{formatCurrency(mainVaultBalance)}</span>)
+                        </span>
                       </h3>
                     </div>
                     <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl p-6 h-[280px] lg:h-[320px] relative overflow-hidden">
@@ -599,10 +613,12 @@ export default function InvestorDashboardPage() {
                         
                         let url = "";
                         if (tx.rawType === "WITHDRAWAL") {
-                          url = `${API_BASE}/withdrawals/${tx.id}/invoice`;
+                          const withdrawalId = tx.entityId || tx.id;
+                          url = `${API_BASE}/withdrawals/${withdrawalId}/invoice`;
                         } else {
+                          // Try entityId first, then description match, then fallback to tx.id
                           const match = tx.description?.match(/#([a-z0-9-]+)/i);
-                          const advanceId = match ? match[1] : (tx.rawType === "GOLD_ADVANCE" ? tx.id : null);
+                          const advanceId = tx.entityId || (match ? match[1] : (tx.rawType === "GOLD_ADVANCE" ? tx.id : null));
                           
                           if (!advanceId) {
                             throw new Error("Could not determine Gold Advance reference.");

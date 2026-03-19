@@ -101,6 +101,38 @@ export default function StaffDashboardPage() {
   const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
 
+  const handleDownload = async (tx: any) => {
+    const isWithdrawal = tx.type === "WITHDRAWAL";
+    const typeLabel = isWithdrawal ? "voucher" : "invoice";
+    showToast(`Generating ${typeLabel}...`);
+    try {
+      const token = localStorage.getItem("token");
+      let url = "";
+      if (isWithdrawal) {
+        const withdrawalId = tx.entityId || tx.id;
+        url = `${API_BASE}/withdrawals/${withdrawalId}/invoice`;
+      } else {
+        const match = tx.description?.match(/#([a-z0-9-]+)/i);
+        const advanceId = tx.entityId || (match ? match[1] : (tx.type === "GOLD_ADVANCE" ? tx.id : null));
+        if (!advanceId) throw new Error("Could not determine Gold Advance reference.");
+        url = `${API_BASE}/gold-advances/${advanceId}/invoice`;
+      }
+
+      const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} generation failed.`);
+      const html = await res.text();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); }, 500);
+      }
+    } catch (err: any) {
+      showToast(err.message);
+    }
+  };
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
 
   const fetchCustomers = async () => {
@@ -262,10 +294,66 @@ export default function StaffDashboardPage() {
 
           <AnimatePresence mode="wait">
             {activeTab === "Overview" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                <h3 className="text-xl font-bold text-white">Platform Performance</h3>
-                <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl p-20 text-center text-gray-500">
-                  Visual analytics coming in Phase 2
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                <div className="grid lg:grid-cols-2 gap-8">
+                  {/* Recent Activity */}
+                  <div className="bg-emerald-950/40 border border-blue-500/10 rounded-2xl p-6">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                       <History className="w-5 h-5 text-blue-400" /> Recent Customer Activity
+                    </h3>
+                    <div className="space-y-4">
+                      {transactions.slice(0, 5).map((tx) => (
+                        <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/20 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${tx.type === "WITHDRAWAL" ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                              {tx.user?.name[0]}
+                            </div>
+                            <div>
+                              <p className="text-sm text-white font-medium group-hover:text-blue-400 transition-all">{tx.user?.name}</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold">{tx.type} · {formatCurrency(tx.amount)}</p>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-gray-600 font-medium">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      ))}
+                      {transactions.length === 0 && (
+                        <p className="text-sm text-gray-500 italic text-center py-10">No recent activity detected.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="bg-emerald-950/40 border border-blue-500/10 rounded-2xl p-6">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                       <Plus className="w-5 h-5 text-blue-400" /> Staff Quick Actions
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button onClick={() => setIsRegModalOpen(true)} className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <UserPlus className="w-6 h-6 text-blue-400" />
+                        <span className="text-sm font-bold text-white">Enroll Customer</span>
+                        <span className="text-[10px] text-gray-400 leading-tight">Create a new vault account for client.</span>
+                      </button>
+                      <button onClick={() => setActiveTab("Customers")} className="p-4 rounded-xl bg-emerald-900/40 border border-white/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <Users className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-all" />
+                        <span className="text-sm font-bold text-white">View Customers</span>
+                        <span className="text-[10px] text-gray-400 leading-tight">Manage your assigned beneficiary list.</span>
+                      </button>
+                      <button onClick={() => setActiveTab("Transactions")} className="p-4 rounded-xl bg-emerald-900/40 border border-white/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <Wallet className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-all" />
+                        <span className="text-sm font-bold text-white">Audit Records</span>
+                        <span className="text-[10px] text-gray-400 leading-tight">Download tax invoices for transactions.</span>
+                      </button>
+                      <button onClick={() => showToast("Staff manual coming soon...")} className="p-4 rounded-xl bg-emerald-900/40 border border-white/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <History className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-all" />
+                        <span className="text-sm font-bold text-white">Staff Guide</span>
+                        <span className="text-[10px] text-gray-400 leading-tight">Operational handbook and SOPs.</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-950/10 border border-white/5 rounded-2xl p-8 text-center">
+                  <p className="text-gray-600 text-sm font-medium tracking-wide">Global Analytical Data visualizer integrated. Detailed charts active in Admin HQ.</p>
                 </div>
               </motion.div>
             )}
@@ -334,7 +422,9 @@ export default function StaffDashboardPage() {
                         <th className="p-4">Customer</th>
                         <th className="p-4">Type</th>
                         <th className="p-4">Amount</th>
-                        <th className="p-4 text-right">Date</th>
+                        <th className="p-4">Processed By</th>
+                        <th className="p-4">Date</th>
+                        <th className="p-4 text-right">Invoice</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -352,8 +442,16 @@ export default function StaffDashboardPage() {
                           <td className={`p-4 font-bold ${tx.type === "WITHDRAWAL" ? "text-red-400" : "text-green-400"}`}>
                             {tx.type === "WITHDRAWAL" ? "-" : "+"}{formatCurrency(tx.amount)}
                           </td>
-                          <td className="p-4 text-right text-gray-400 text-sm">
+                          <td className="p-4 text-gray-400 text-xs">
+                            {tx.performedBy?.name || "SYSTEM"}
+                          </td>
+                          <td className="p-4 text-gray-400 text-sm">
                             {new Date(tx.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="p-4 text-right">
+                            <button onClick={() => handleDownload(tx)} title="Download Receipt" className="p-2 text-blue-400 hover:text-blue-300 hover:scale-110 transition-all inline-flex">
+                              <Download className="w-4 h-4" />
+                            </button>
                           </td>
                         </tr>
                       ))}

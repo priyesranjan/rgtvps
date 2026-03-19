@@ -113,12 +113,34 @@ export class StaffController {
           where: {
             user: { staffId }
           },
-          include: { user: { select: { name: true, email: true } } },
+          include: { 
+            user: { 
+              select: { 
+                name: true, 
+                email: true,
+                assignedStaff: { select: { name: true } }
+              } 
+            },
+            performedBy: { select: { name: true } }
+          },
           orderBy: { createdAt: "desc" },
         }),
         prisma.transaction.count({ where: { user: { staffId } } })
       ]);
-      res.json(formatPaginationResponse(transactions, total, page, limit));
+
+      const mappedTransactions = transactions.map((tx: any) => {
+        let processedBy = tx.performedBy?.name;
+        if (!processedBy) {
+          if (tx.type === "DEPOSIT" || tx.type === "WITHDRAWAL" || tx.type === "GOLD_ADVANCE") {
+            processedBy = tx.user?.assignedStaff?.name || "SYSTEM";
+          } else {
+            processedBy = "SYSTEM";
+          }
+        }
+        return { ...tx, processedBy };
+      });
+
+      res.json(formatPaginationResponse(mappedTransactions, total, page, limit));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -138,9 +160,26 @@ export class StaffController {
 
       const transactions = await prisma.transaction.findMany({
         where: { userId },
+        include: { 
+          performedBy: { select: { name: true } },
+          user: { select: { assignedStaff: { select: { name: true } } } }
+        },
         orderBy: { createdAt: "desc" },
       });
-      res.json(transactions);
+
+      const mappedTransactions = transactions.map((tx: any) => {
+        let processedBy = tx.performedBy?.name;
+        if (!processedBy) {
+          if (tx.type === "DEPOSIT" || tx.type === "WITHDRAWAL" || tx.type === "GOLD_ADVANCE") {
+            processedBy = tx.user?.assignedStaff?.name || "SYSTEM";
+          } else {
+            processedBy = "SYSTEM";
+          }
+        }
+        return { ...tx, processedBy };
+      });
+
+      res.json(mappedTransactions);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

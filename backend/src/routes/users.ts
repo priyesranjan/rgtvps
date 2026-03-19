@@ -104,13 +104,36 @@ usersRouter.get("/:id/transactions", async (req: AuthRequest, res: Response) => 
     const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({
         where: { userId: req.params.id },
+        include: {
+          performedBy: {
+            select: { name: true }
+          },
+          user: {
+            select: {
+              assignedStaff: { select: { name: true } }
+            }
+          }
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take
       }),
       prisma.transaction.count({ where: { userId: req.params.id } })
     ]);
-    res.json(formatPaginationResponse(transactions, total, page, limit));
+    
+    const mappedTransactions = transactions.map((tx: any) => {
+      let processedBy = tx.performedBy?.name;
+      if (!processedBy) {
+        if (tx.type === "DEPOSIT" || tx.type === "WITHDRAWAL" || tx.type === "GOLD_ADVANCE") {
+          processedBy = tx.user?.assignedStaff?.name || "SYSTEM";
+        } else {
+          processedBy = "SYSTEM";
+        }
+      }
+      return { ...tx, processedBy };
+    });
+
+    res.json(formatPaginationResponse(mappedTransactions, total, page, limit));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch transactions" });

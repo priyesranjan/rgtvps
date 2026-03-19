@@ -86,6 +86,7 @@ export default function UserTransactionHistoryModal({ isOpen, onClose, user, cal
                     <th className="p-4 font-bold">Type</th>
                     <th className="p-4 font-bold">Amount</th>
                     <th className="p-4 font-bold">Description</th>
+                    <th className="p-4 font-bold">Processed By</th>
                     <th className="p-4 text-right font-bold">Date</th>
                   </tr>
                 </thead>
@@ -106,6 +107,9 @@ export default function UserTransactionHistoryModal({ isOpen, onClose, user, cal
                       </td>
                       <td className="p-4 text-xs text-gray-400 leading-relaxed italic max-w-[200px] truncate">
                         {tx.description || "N/A"}
+                      </td>
+                      <td className="p-4 text-[10px] text-gray-500">
+                        {tx.performedBy?.name || "SYSTEM"}
                       </td>
                       <td className="p-4 text-right">
                         <p className="text-xs text-white font-medium">{new Date(tx.createdAt).toLocaleDateString()}</p>

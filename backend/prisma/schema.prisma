@@ -93,6 +93,7 @@ model User {
   goldAdvances  GoldAdvance[]
   transactions Transaction[]
   withdrawals  WithdrawalRequest[]
+  performedTransactions Transaction[] @relation("PerformedTransactions")
   
   // Relations
   referrer     User?    @relation("ReferrerRelation", fields: [referredBy], references: [id])
@@ -130,6 +131,7 @@ model Wallet {
 
 model GoldAdvance {
   id            String           @id @default(cuid())
+  invoiceNo     Int              @unique @default(autoincrement())
   userId        String
   user          User             @relation(fields: [userId], references: [id])
   advanceAmount Decimal          @db.Decimal(15, 2)
@@ -147,12 +149,16 @@ model GoldAdvance {
 
 model Transaction {
   id          String          @id @default(cuid())
+  entityId    String?         // Reference to GoldAdvance or WithdrawalRequest ID
   userId      String
   user        User            @relation(fields: [userId], references: [id])
   type        TransactionType
   amount      Decimal         @db.Decimal(15, 2)
   balanceAfter Decimal        @default(0) @db.Decimal(15, 2)
   description String?
+  
+  performedById String?
+  performedBy   User?          @relation("PerformedTransactions", fields: [performedById], references: [id])
   
   createdAt   DateTime        @default(now())
 
@@ -165,6 +171,7 @@ model Transaction {
 
 model WithdrawalRequest {
   id        String           @id @default(cuid())
+  invoiceNo Int              @unique @default(autoincrement())
   userId    String
   user      User             @relation(fields: [userId], references: [id])
   amount    Decimal          @db.Decimal(15, 2)

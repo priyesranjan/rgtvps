@@ -55,8 +55,8 @@ export class CustomerService {
           gender,
           dob,
           initialGoldAdvanceAmount,
-          referredBy,
-          staffId,
+          referredBy: referredBy || undefined,
+          staffId: staffId || undefined,
         }
       });
 
@@ -79,13 +79,16 @@ export class CustomerService {
       });
 
       // 4. Create deposit transaction
+      const paddedNo = `RGT-${String(goldAdvance.invoiceNo).padStart(6, '0')}`;
       await tx.transaction.create({
         data: {
           userId: user.id,
+          entityId: goldAdvance.id,
+          performedById: performedByUserId,
           type: TransactionType.DEPOSIT,
           amount: initialGoldAdvanceAmount,
           balanceAfter: initialGoldAdvanceAmount,
-          description: "Initial Gold Advance Deposit"
+          description: `Initial Gold Advance Deposit. Ref: #${paddedNo}`
         }
       });
 

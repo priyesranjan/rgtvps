@@ -21,6 +21,8 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import UserTransactionHistoryModal from "@/components/dashboard/UserTransactionHistoryModal";
 import AddGoldAdvanceModal from "@/components/dashboard/AddGoldAdvanceModal";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 const AdminAUMChart = dynamic(() => import("@/components/ui/AdminAUMChart"), {
   ssr: false,
   loading: () => <div className="w-full h-full flex items-center justify-center text-gray-600 text-sm">Loading chart...</div>,
@@ -285,6 +287,38 @@ export default function AdminDashboardPage() {
       fetchStats();
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const handleDownload = async (tx: any) => {
+    const isWithdrawal = tx.type === "WITHDRAWAL";
+    const typeLabel = isWithdrawal ? "voucher" : "invoice";
+    showToast(`Generating ${typeLabel}...`);
+    try {
+      const token = localStorage.getItem("token");
+      let url = "";
+      if (isWithdrawal) {
+        const withdrawalId = tx.entityId || tx.id;
+        url = `${API_BASE}/withdrawals/${withdrawalId}/invoice`;
+      } else {
+        const match = tx.description?.match(/#([a-z0-9-]+)/i);
+        const advanceId = tx.entityId || (match ? match[1] : (tx.type === "GOLD_ADVANCE" ? tx.id : null));
+        if (!advanceId) throw new Error("Could not determine Gold Advance reference.");
+        url = `${API_BASE}/gold-advances/${advanceId}/invoice`;
+      }
+
+      const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} generation failed.`);
+      const html = await res.text();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); }, 500);
+      }
+    } catch (err: any) {
+      showToast(err.message);
     }
   };
 
@@ -659,7 +693,9 @@ export default function AdminDashboardPage() {
                         <SortHeader label="Type" field="type" currentSort={txSortBy} currentOrder={txSortOrder} onSort={(f: any) => handleSort(f, txSortBy, setTxSortBy, txSortOrder, setTxSortOrder)} />
                         <SortHeader label="Amount" field="amount" currentSort={txSortBy} currentOrder={txSortOrder} onSort={(f: any) => handleSort(f, txSortBy, setTxSortBy, txSortOrder, setTxSortOrder)} />
                         <th className="p-4">Description</th>
-                        <SortHeader label="Date" field="createdAt" currentSort={txSortBy} currentOrder={txSortOrder} onSort={(f: any) => handleSort(f, txSortBy, setTxSortBy, txSortOrder, setTxSortOrder)} align="right" />
+                        <th className="p-4">Processed By</th>
+                        <SortHeader label="Date" field="createdAt" currentSort={txSortBy} currentOrder={txSortOrder} onSort={(f: any) => handleSort(f, txSortBy, setTxSortBy, txSortOrder, setTxSortOrder)} />
+                        <th className="p-4 text-right">Invoice</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -678,8 +714,14 @@ export default function AdminDashboardPage() {
                             {tx.type === "WITHDRAWAL" ? "-" : "+"}{formatCurrency(tx.amount)}
                           </td>
                           <td className="p-4 text-gray-400 text-xs italic">{tx.description || "-"}</td>
-                          <td className="p-4 text-right text-gray-500 text-xs">
+                          <td className="p-4 text-gray-400 text-xs">{tx.performedBy?.name || "SYSTEM"}</td>
+                          <td className="p-4 text-gray-500 text-xs">
                             {new Date(tx.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="p-4 text-right">
+                            <button onClick={() => handleDownload(tx)} title="Download Receipt" className="p-2 text-gold-400 hover:text-gold-300 hover:scale-110 transition-all inline-flex">
+                              <Download className="w-4 h-4" />
+                            </button>
                           </td>
                         </tr>
                       ))}
