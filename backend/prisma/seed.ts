@@ -87,6 +87,7 @@ async function main() {
     await (prisma.transaction as any).create({
       data: {
         userId: customer.id,
+        performedById: admin.id,
         type: "DEPOSIT",
         amount: 100000,
         balanceAfter: 100000,
