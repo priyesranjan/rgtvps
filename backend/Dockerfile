@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json* yarn.lock* ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --include=dev
 
 # Copy Prisma schema and source
 COPY prisma ./prisma
@@ -52,4 +52,4 @@ ENV PORT=4000
 EXPOSE 4000
 
 # Start application
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]
