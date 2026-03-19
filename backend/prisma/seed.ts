@@ -20,22 +20,6 @@ async function main() {
 
   const passwordHash = await bcrypt.hash("password123", 10);
 
-  // ── Admin ─────────────────────────────────────────────────────────────────────
-  const admin = await (prisma.user as any).upsert({
-    where: { email: "admin@rgt.com" },
-    update: {},
-    create: {
-      name: "Super Admin",
-      email: "admin@rgt.com",
-      password: passwordHash,
-      role: Role.ADMIN,
-      contactNo: "0000000001",
-      wallet: { create: {} }
-    },
-  });
-  console.log(`✅ Admin: ${admin.name} (${admin.email})`);
-
-
   // ── Staff ─────────────────────────────────────────────────────────────────────
   const staff = await (prisma.user as any).upsert({
     where: { email: "staff@rgt.com" },
@@ -49,8 +33,6 @@ async function main() {
       wallet: { create: {} }
     },
   });
-  console.log(`✅ Staff: ${staff.name} (${staff.email})`);
-
 
   // ── Customer ──────────────────────────────────────────────────────────────────
   const customer = await (prisma.user as any).upsert({
@@ -66,14 +48,91 @@ async function main() {
       staffId: staff.id,
       initialGoldAdvanceAmount: 100000,
       wallet: { 
-        create: {
-          goldAdvanceAmount: 100000,
-          totalWithdrawable: 100000
-        } 
+        create: { goldAdvanceAmount: 100000, totalWithdrawable: 100000 } 
       }
     },
   });
-  console.log(`✅ Customer: ${customer.name} (${customer.email})`);
+
+  // ── New Requested Users ───────────────────────────────────────────────────────
+  
+  const techTeam = await (prisma.user as any).upsert({
+    where: { email: 'tech@rgt.in' },
+    update: {},
+    create: {
+      name: 'Tech Team',
+      email: 'tech@rgt.in',
+      password: await bcrypt.hash('techteam@123', 10),
+      role: Role.TECH_TEAM,
+      wallet: { create: {} }
+    },
+  });
+  console.log(`✅ Tech Team: ${techTeam.email}`);
+
+  const adminUser = await (prisma.user as any).upsert({
+    where: { email: 'admin@rgt.in' },
+    update: {},
+    create: {
+      name: 'Admin',
+      email: 'admin@rgt.in',
+      password: await bcrypt.hash('admin@123', 10),
+      role: Role.ADMIN,
+      wallet: { create: {} }
+    },
+  });
+  console.log(`✅ Admin: ${adminUser.email}`);
+
+  const manager = await (prisma.user as any).upsert({
+    where: { email: 'manager@rgt.in' },
+    update: {},
+    create: {
+      name: 'Manager',
+      email: 'manager@rgt.in',
+      password: await bcrypt.hash('manager@123', 10),
+      role: Role.MANAGER,
+      wallet: { create: {} }
+    },
+  });
+  console.log(`✅ Manager: ${manager.email}`);
+
+  const sanjay = await (prisma.user as any).upsert({
+    where: { email: 'sanjay@rgt.in' },
+    update: {},
+    create: {
+      name: 'Sanjay',
+      email: 'sanjay@rgt.in',
+      password: await bcrypt.hash('employee@123', 10),
+      role: Role.EMPLOYEE,
+      wallet: { create: {} }
+    },
+  });
+  console.log(`✅ Employee: ${sanjay.email}`);
+
+  const raunak = await (prisma.user as any).upsert({
+    where: { email: 'raunak@rgt.in' },
+    update: {},
+    create: {
+      name: 'Raunak',
+      email: 'raunak@rgt.in',
+      password: await bcrypt.hash('employee@123', 10),
+      role: Role.EMPLOYEE,
+      wallet: { create: {} }
+    },
+  });
+  console.log(`✅ Employee: ${raunak.email}`);
+
+  const investor = await (prisma.user as any).upsert({
+    where: { email: '+919876543210' },
+    update: {},
+    create: {
+      name: 'Investor',
+      email: '+919876543210',
+      contactNo: '+919876543210',
+      password: await bcrypt.hash('investor@123', 10),
+      role: Role.INVESTOR,
+      wallet: { create: {} }
+    },
+  });
+  console.log(`✅ Investor: ${investor.email}`);
 
   // ── Sample Gold Advance ───────────────────────────────────────────────────────
   const existingAdvance = await prisma.goldAdvance.findFirst({
