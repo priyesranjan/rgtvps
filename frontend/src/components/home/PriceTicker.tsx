@@ -17,11 +17,11 @@ export default function PriceTicker() {
   const tickerItems = [...MARKET_DATA, ...MARKET_DATA, ...MARKET_DATA];
 
   return (
-    <div className="w-full bg-emerald-950 border-y border-gold-500/20 overflow-hidden flex items-center h-14 relative z-20">
+    <div className="w-full bg-bg-surface-soft dark:bg-bg-surface border-y border-gold-500/20 overflow-hidden flex items-center h-14 relative z-20">
       
       {/* Subtle fade effect on edges for seamless loop */}
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-emerald-950 to-transparent z-10" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-emerald-950 to-transparent z-10" />
+      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-bg-surface-soft dark:from-bg-surface to-transparent z-10" />
+      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-bg-surface-soft dark:from-bg-surface to-transparent z-10" />
 
       <motion.div
         animate={{ x: [0, -1035] }} // The exact width depends on content, we loop it smoothly
@@ -38,10 +38,10 @@ export default function PriceTicker() {
             key={`${item.asset}-${index}`} 
             className="flex items-center gap-3 px-8 border-r border-gold-500/10"
           >
-            <span className="text-gray-400 text-xs font-semibold tracking-widest uppercase">
+            <span className="text-text-secondary text-xs font-semibold tracking-widest uppercase">
               {item.asset}
             </span>
-            <span className="text-white font-mono font-bold tracking-tight">
+            <span className="text-text-primary font-mono font-bold tracking-tight">
               ${item.price}
             </span>
             <div className={`flex items-center text-xs font-medium ${item.isUp ? 'text-emerald-400' : 'text-red-400'}`}>

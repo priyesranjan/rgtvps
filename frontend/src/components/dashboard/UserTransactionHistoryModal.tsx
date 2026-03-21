@@ -53,21 +53,21 @@ export default function UserTransactionHistoryModal({ isOpen, onClose, user, cal
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-emerald-950 border border-gold-500/20 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+          className="bg-bg-surface border border-gold-500/20 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="p-6 border-b border-gold-500/10 flex items-center justify-between bg-emerald-1000/50">
+          <div className="p-6 border-b border-gold-500/10 flex items-center justify-between bg-bg-app/50">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
                 <ArrowLeftRight className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-heading font-bold text-white tracking-wide">Transaction History</h2>
-                <p className="text-xs text-gray-500 uppercase tracking-widest">{user.name}</p>
+                <h2 className="text-lg font-heading font-bold text-text-primary tracking-wide">Transaction History</h2>
+                <p className="text-xs text-text-secondary uppercase tracking-widest">{user.name}</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -81,7 +81,7 @@ export default function UserTransactionHistoryModal({ isOpen, onClose, user, cal
               </div>
             ) : (
               <table className="w-full text-left">
-                <thead className="sticky top-0 bg-emerald-1000 text-[10px] text-gray-500 uppercase tracking-wider border-b border-white/5">
+                <thead className="sticky top-0 bg-bg-app text-[10px] text-text-secondary uppercase tracking-wider border-b border-gold-500/10">
                   <tr>
                     <th className="p-4 font-bold">Type</th>
                     <th className="p-4 font-bold">Amount</th>
@@ -112,8 +112,8 @@ export default function UserTransactionHistoryModal({ isOpen, onClose, user, cal
                         {tx.performedBy?.name || "SYSTEM"}
                       </td>
                       <td className="p-4 text-right">
-                        <p className="text-xs text-white font-medium">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                        <p className="text-[10px] text-gray-500">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-xs text-text-primary font-medium">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                        <p className="text-[10px] text-text-secondary">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                       </td>
                     </tr>
                   ))}
@@ -130,7 +130,7 @@ export default function UserTransactionHistoryModal({ isOpen, onClose, user, cal
           </div>
 
           {/* Footer */}
-          <div className="p-4 bg-emerald-1000/50 border-t border-gold-500/10 flex justify-end">
+          <div className="p-4 bg-bg-app/50 border-t border-gold-500/10 flex justify-end">
             <button 
               onClick={onClose}
               className="px-6 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 text-xs font-bold transition-all"

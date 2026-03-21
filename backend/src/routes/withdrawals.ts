@@ -5,10 +5,10 @@ import { Role } from "@prisma/client";
 
 export const withdrawalRouter = Router();
 
-// Customer Endpoints
-withdrawalRouter.post("/", requireAuth, requireRole(Role.CUSTOMER), WithdrawalController.request);
+// Submission Endpoints
+withdrawalRouter.post("/request", requireAuth, requireRole(Role.CUSTOMER, Role.STAFF, Role.ADMIN), WithdrawalController.request);
 withdrawalRouter.get("/", requireAuth, requireRole(Role.CUSTOMER), WithdrawalController.list);
-withdrawalRouter.get("/:id/invoice", requireAuth, WithdrawalController.getInvoice);
+withdrawalRouter.get("/:id/invoice", WithdrawalController.getInvoice);
 
 // Admin Endpoints
 withdrawalRouter.get("/admin/all", requireAuth, requireRole(Role.ADMIN), WithdrawalController.adminList);

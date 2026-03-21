@@ -6,13 +6,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   Users, TrendingUp, LogOut, Download, Settings, 
-  LineChart, ShieldCheck, X, Menu, Wallet, Plus, Loader2, UserPlus, CheckCircle2, History, Eye
+  LineChart, ShieldCheck, X, Menu, Wallet, Plus, Loader2, UserPlus, CheckCircle2, History, Eye, Sun, Moon, ArrowUpRight, User
 } from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import UserRegistrationModal from "@/components/dashboard/UserRegistrationModal";
 import UserProfileModal from "@/components/dashboard/UserProfileModal";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import UserTransactionHistoryModal from "@/components/dashboard/UserTransactionHistoryModal";
 import RoleGuard from "@/components/auth/RoleGuard";
+import ManualWithdrawalModal from "@/components/dashboard/ManualWithdrawalModal";
+import ProfileTab from "@/components/dashboard/ProfileTab";
 import { formatCurrency } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -54,21 +57,21 @@ function GoldAdvanceModal({ onClose, onSuccess, customer }: { onClose: () => voi
     >
       <motion.div
         initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
-        className="bg-emerald-950 border border-blue-500/20 rounded-3xl p-8 w-full max-w-md shadow-2xl"
+        className="bg-bg-surface border border-gold-500/20 rounded-3xl p-8 w-full max-w-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-xl font-heading font-bold text-white">Add Gold Advance</h2>
-            <p className="text-gray-400 text-sm mt-1">Recording for {customer.name}</p>
+            <h2 className="text-xl font-heading font-bold text-text-primary">Add Gold Advance</h2>
+            <p className="text-text-secondary text-sm mt-1">Recording for {customer.name}</p>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-300 mb-2 block">Amount (₹)</label>
+            <label className="text-sm font-medium text-text-secondary mb-2 block">Amount (₹)</label>
             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 50000"
-              className="w-full bg-emerald-1000/50 border border-blue-500/20 focus:border-blue-500/50 text-white rounded-xl py-3 px-4 outline-none transition-all" />
+              className="w-full bg-bg-app border border-gold-500/20 focus:border-gold-500/50 text-text-primary rounded-xl py-3 px-4 outline-none transition-all" />
           </div>
           <button
             onClick={handleSubmit}
@@ -96,8 +99,10 @@ export default function StaffDashboardPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [historyCustomer, setHistoryCustomer] = useState<any>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [profileUser, setProfileUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawUser, setWithdrawUser] = useState<any>(null);
   const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
 
@@ -191,15 +196,48 @@ export default function StaffDashboardPage() {
     }
   };
 
+  const fetchLeaderboard = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/staff/leaderboard`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (res.ok) {
+        const json = await res.json();
+        setLeaderboard(json);
+      }
+    } catch (err) {
+      console.error("Fetch leaderboard failed:", err);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    const token = localStorage.getItem("token");
+    const userJson = localStorage.getItem("user");
+    if (!token || !userJson) return;
+    const basicUser = JSON.parse(userJson);
+    try {
+      const res = await fetch(`${API_BASE}/users/${basicUser.id}`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (res.ok) {
+        const fullUser = await res.json();
+        setCurrentUser(fullUser);
+        localStorage.setItem("user", JSON.stringify(fullUser));
+      }
+    } catch (err) {
+      console.error("Fetch current user failed:", err);
+    }
+  };
+
   const loadTabData = async (tab: string) => {
     if (tab === "Overview") {
-      await Promise.all([fetchCustomers(), fetchEarnings(), fetchStaffStats()]);
+      await Promise.all([fetchCustomers(), fetchEarnings(), fetchStaffStats(), fetchLeaderboard(), fetchCurrentUser()]);
     } else if (tab === "Customers") {
       await fetchCustomers();
     } else if (tab === "Transactions") {
       await fetchTransactions();
     } else if (tab === "Earnings") {
       await Promise.all([fetchEarnings(), fetchStaffStats()]);
+    } else if (tab === "Profile") {
+      await fetchCurrentUser();
     }
   };
 
@@ -229,30 +267,32 @@ export default function StaffDashboardPage() {
     { id: "Customers", name: "Customers", icon: Users },
     { id: "Transactions", name: "Transactions", icon: Wallet },
     { id: "Earnings", name: "Earnings", icon: TrendingUp },
+    { id: "Profile", name: "Profile", icon: User },
   ];
 
   const userJson = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const user = userJson ? JSON.parse(userJson) : null;
 
   const staffUser = {
-    name: user?.name || "Staff Member",
+    name: currentUser?.name || user?.name || "Staff Member",
     role: "STAFF",
     details: "Official Staff",
-    icon: Users,
+    icon: User,
     iconBg: "bg-blue-900/40",
     iconColor: "text-blue-400",
-    borderColor: "border-blue-500/30"
+    borderColor: "border-blue-500/30",
+    photo: currentUser?.photo // If sidebar supports it, adding it here doesn't hurt
   };
 
   if (isLoading) return (
-    <div className="min-h-screen bg-emerald-1000 flex items-center justify-center">
+    <div className="min-h-screen bg-bg-app flex items-center justify-center">
       <Loader2 className="w-10 h-10 text-gold-500 animate-spin" />
     </div>
   );
 
   return (
     <RoleGuard allowedRoles={["STAFF"]}>
-      <div className="min-h-screen bg-emerald-1000 flex transition-all">
+      <div className="min-h-screen bg-bg-app flex transition-all">
         <DashboardSidebar
           items={sidebarItems}
           activeTab={activeTab}
@@ -268,27 +308,30 @@ export default function StaffDashboardPage() {
         <main className="flex-1 p-6 lg:p-10 relative overflow-y-auto h-screen custom-scrollbar">
           <header className="flex justify-between items-center mb-10">
             <div className="flex items-center gap-4">
-              <button className="lg:hidden text-gray-400 hover:text-white p-1" onClick={() => setMobileSidebarOpen(true)}>
+              <button className="lg:hidden text-text-secondary hover:text-text-primary p-1" onClick={() => setMobileSidebarOpen(true)}>
                 <Menu className="w-6 h-6" />
               </button>
-              <h1 className="text-3xl font-heading font-bold text-white tracking-wide">
-                Staff <span className="text-blue-400">Dashboard</span>
+              <h1 className="text-3xl font-heading font-bold text-text-primary tracking-wide">
+                Staff <span className="text-blue-500 dark:text-blue-400">Dashboard</span>
               </h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
             </div>
           </header>
 
           <div className="grid md:grid-cols-3 gap-6 mb-10">
-            <div className="bg-emerald-950/40 border border-blue-500/20 p-6 rounded-2xl">
-              <p className="text-gray-400 text-sm mb-1">Total Customers</p>
-              <h2 className="text-3xl font-bold text-white">{stats?.customersCount ?? customers.length}</h2>
+            <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/10 border border-blue-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-blue-500/10">
+              <p className="text-blue-400/80 text-xs font-bold uppercase tracking-widest mb-1">Total Customers</p>
+              <h2 className="text-4xl font-black text-text-primary tracking-tight">{stats?.customersCount ?? customers.length}</h2>
             </div>
-            <div className="bg-emerald-950/40 border border-green-500/20 p-6 rounded-2xl">
-              <p className="text-gray-400 text-sm mb-1">Total Commissions</p>
-              <h2 className="text-3xl font-bold text-green-400">{formatCurrency(stats?.totalCommission ?? totalCommission)}</h2>
+            <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/10 border border-green-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-green-500/10">
+              <p className="text-green-400/80 text-xs font-bold uppercase tracking-widest mb-1">Total Commissions</p>
+              <h2 className="text-4xl font-black text-green-500 dark:text-green-400 tracking-tight">{formatCurrency(stats?.totalCommission ?? totalCommission)}</h2>
             </div>
-            <div className="bg-emerald-950/40 border border-gold-500/20 p-6 rounded-2xl">
-              <p className="text-gray-400 text-sm mb-1">Role Status</p>
-              <h2 className="text-2xl font-bold text-gold-400 italic">Active Official</h2>
+            <div className="bg-gradient-to-br from-gold-600/20 to-yellow-600/10 border border-gold-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-gold-500/10">
+              <p className="text-gold-400/80 text-xs font-bold uppercase tracking-widest mb-1">Role Status</p>
+              <h2 className="text-2xl font-black text-gold-500 dark:text-gold-400 italic tracking-tight">Active Official</h2>
             </div>
           </div>
 
@@ -297,23 +340,23 @@ export default function StaffDashboardPage() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
                 <div className="grid lg:grid-cols-2 gap-8">
                   {/* Recent Activity */}
-                  <div className="bg-emerald-950/40 border border-blue-500/10 rounded-2xl p-6">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                       <History className="w-5 h-5 text-blue-400" /> Recent Customer Activity
+                  <div className="bg-bg-surface/40 border border-gold-500/10 rounded-2xl p-6">
+                    <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+                       <History className="w-5 h-5 text-blue-500 dark:text-blue-400" /> Recent Customer Activity
                     </h3>
                     <div className="space-y-4">
                       {transactions.slice(0, 5).map((tx) => (
-                        <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/20 transition-all group">
+                        <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-bg-app border border-gold-500/10 hover:border-blue-500/20 transition-all group">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${tx.type === "WITHDRAWAL" ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${tx.type === "WITHDRAWAL" ? "bg-red-500/10 text-red-500 dark:text-red-400" : "bg-green-500/10 text-green-600 dark:text-green-400"}`}>
                               {tx.user?.name[0]}
                             </div>
                             <div>
-                              <p className="text-sm text-white font-medium group-hover:text-blue-400 transition-all">{tx.user?.name}</p>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold">{tx.type} · {formatCurrency(tx.amount)}</p>
+                              <p className="text-sm text-text-primary font-medium group-hover:text-blue-500 transition-all">{tx.user?.name}</p>
+                              <p className="text-[10px] text-text-secondary uppercase font-bold">{tx.type} · {formatCurrency(tx.amount)}</p>
                             </div>
                           </div>
-                          <p className="text-[10px] text-gray-600 font-medium">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                          <p className="text-[10px] text-text-secondary font-medium">{new Date(tx.createdAt).toLocaleDateString()}</p>
                         </div>
                       ))}
                       {transactions.length === 0 && (
@@ -323,37 +366,102 @@ export default function StaffDashboardPage() {
                   </div>
 
                   {/* Quick Actions */}
-                  <div className="bg-emerald-950/40 border border-blue-500/10 rounded-2xl p-6">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                       <Plus className="w-5 h-5 text-blue-400" /> Staff Quick Actions
+                  <div className="bg-bg-surface/40 border border-gold-500/10 rounded-2xl p-6">
+                    <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+                       <Plus className="w-5 h-5 text-blue-500 dark:text-blue-400" /> Staff Quick Actions
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <button onClick={() => setIsRegModalOpen(true)} className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-all text-left flex flex-col gap-2 group">
-                        <UserPlus className="w-6 h-6 text-blue-400" />
-                        <span className="text-sm font-bold text-white">Enroll Customer</span>
-                        <span className="text-[10px] text-gray-400 leading-tight">Create a new vault account for client.</span>
+                        <UserPlus className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+                        <span className="text-sm font-bold text-text-primary">Enroll Customer</span>
+                        <span className="text-[10px] text-text-secondary leading-tight">Create a new vault account for client.</span>
                       </button>
-                      <button onClick={() => setActiveTab("Customers")} className="p-4 rounded-xl bg-emerald-900/40 border border-white/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
-                        <Users className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-all" />
-                        <span className="text-sm font-bold text-white">View Customers</span>
-                        <span className="text-[10px] text-gray-400 leading-tight">Manage your assigned beneficiary list.</span>
+                      <button onClick={() => setActiveTab("Customers")} className="p-4 rounded-xl bg-bg-app border border-gold-500/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <Users className="w-6 h-6 text-text-secondary group-hover:text-blue-500 transition-all" />
+                        <span className="text-sm font-bold text-text-primary">View Customers</span>
+                        <span className="text-[10px] text-text-secondary leading-tight">Manage your assigned beneficiary list.</span>
                       </button>
-                      <button onClick={() => setActiveTab("Transactions")} className="p-4 rounded-xl bg-emerald-900/40 border border-white/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
-                        <Wallet className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-all" />
-                        <span className="text-sm font-bold text-white">Audit Records</span>
-                        <span className="text-[10px] text-gray-400 leading-tight">Download tax invoices for transactions.</span>
+                      <button onClick={() => setActiveTab("Transactions")} className="p-4 rounded-xl bg-bg-app border border-gold-500/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <Wallet className="w-6 h-6 text-text-secondary group-hover:text-blue-500 transition-all" />
+                        <span className="text-sm font-bold text-text-primary">Audit Records</span>
+                        <span className="text-[10px] text-text-secondary leading-tight">Download tax invoices for transactions.</span>
                       </button>
-                      <button onClick={() => showToast("Staff manual coming soon...")} className="p-4 rounded-xl bg-emerald-900/40 border border-white/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
-                        <History className="w-6 h-6 text-gray-400 group-hover:text-blue-400 transition-all" />
-                        <span className="text-sm font-bold text-white">Staff Guide</span>
-                        <span className="text-[10px] text-gray-400 leading-tight">Operational handbook and SOPs.</span>
+                      <button onClick={() => showToast("Staff manual coming soon...")} className="p-4 rounded-xl bg-bg-app border border-gold-500/5 hover:border-blue-500/20 transition-all text-left flex flex-col gap-2 group">
+                        <History className="w-6 h-6 text-text-secondary group-hover:text-blue-500 transition-all" />
+                        <span className="text-sm font-bold text-text-primary">Staff Guide</span>
+                        <span className="text-[10px] text-text-secondary leading-tight">Operational handbook and SOPs.</span>
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-emerald-950/10 border border-white/5 rounded-2xl p-8 text-center">
-                  <p className="text-gray-600 text-sm font-medium tracking-wide">Global Analytical Data visualizer integrated. Detailed charts active in Admin HQ.</p>
+                {/* Commission Leaderboard */}
+                <div className="bg-bg-surface/40 border border-gold-500/10 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-gold-500" /> Performance Leaderboard
+                    </h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {leaderboard.map((staff, i) => {
+                      const isCurrentUser = staff.id === user?.id;
+                      const isLast = i === leaderboard.length - 1 && leaderboard.length > 1;
+                      
+                      return (
+                        <div key={staff.id} 
+                          className={`flex items-center justify-between p-4 rounded-xl transition-all relative group overflow-hidden 
+                            ${isCurrentUser ? "bg-blue-glass ring-1 ring-blue-500/50 scale-[1.02] z-10" : 
+                              isLast ? "bg-red-500/10 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : 
+                              "bg-bg-app/40 border border-gold-500/10 hover:border-blue-500/30"}`}
+                        >
+                          {isCurrentUser && <div className="absolute inset-0 bg-blue-500/5 animate-pulse" />}
+                          <div className="flex items-center gap-4">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border 
+                              ${i === 0 ? "bg-gold-500/20 border-gold-500 text-gold-500" : 
+                                i === 1 ? "bg-gray-400/20 border-gray-400 text-gray-400" : 
+                                i === 2 ? "bg-orange-600/20 border-orange-600 text-orange-600" : 
+                                isLast ? "bg-red-500/20 border-red-500 text-red-500" :
+                                "bg-bg-surface border-gold-500/20 text-text-secondary"}`}
+                            >
+                              {i + 1}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full overflow-hidden border border-gold-500/20 bg-bg-app flex items-center justify-center">
+                                {staff.photo ? (
+                                  <img src={staff.photo} alt={staff.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <User className="w-5 h-5 text-gold-500/40" />
+                                )}
+                              </div>
+                              <div>
+                                <p className={`text-sm font-bold flex items-center gap-2 ${isLast ? "text-red-400" : "text-text-primary"}`}>
+                                  {staff.name}
+                                  {isCurrentUser && <span className="text-[9px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">YOU</span>}
+                                  {isLast && <span className="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">DANGER</span>}
+                                </p>
+                                <p className="text-[10px] text-text-secondary">{staff.customersCount} active customers</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-bold ${isLast ? "text-red-400" : "text-gold-500"}`}>{formatCurrency(staff.totalCommission)}</p>
+                            <p className="text-[9px] text-text-secondary uppercase font-bold tracking-widest">Commission</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {leaderboard.length === 0 && (
+                    <div className="text-center py-10">
+                      <p className="text-sm text-text-secondary italic">Calculating real-time rankings...</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-bg-surface/10 border border-gold-500/5 rounded-2xl p-8 text-center">
+                  <p className="text-text-secondary text-sm font-medium tracking-wide">Global Analytical Data visualizer integrated. Detailed charts active in Admin HQ.</p>
                 </div>
               </motion.div>
             )}
@@ -361,44 +469,44 @@ export default function StaffDashboardPage() {
             {activeTab === "Customers" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white">My Customers</h3>
+                  <h3 className="text-xl font-bold text-text-primary">My Customers</h3>
                   <button onClick={() => setIsRegModalOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-white text-sm font-bold transition-all transform active:scale-95">
                     <UserPlus className="w-4 h-4" /> Add Customer
                   </button>
                 </div>
-                <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl overflow-x-auto">
+                <div className="bg-bg-surface/30 border border-gold-500/10 rounded-2xl overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-emerald-1000 text-xs text-gray-400 uppercase tracking-wider">
+                      <tr className="bg-bg-app text-[10px] text-text-secondary uppercase tracking-widest font-bold border-b border-gold-500/10">
                         <th className="p-4">Customer</th>
                         <th className="p-4">Advance Amount</th>
                         <th className="p-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-gold-500/5">
                       {customers.map((c) => (
                         <tr key={c.id}>
                           <td className="p-4">
-                            <p className="text-white font-medium">{c.name}</p>
-                            <p className="text-xs text-gray-500">{c.email}</p>
+                            <p className="text-text-primary font-medium">{c.name}</p>
+                            <p className="text-xs text-text-secondary">{c.email}</p>
                           </td>
-                          <td className="p-4 text-blue-400 font-bold">
+                          <td className="p-4 text-blue-500 dark:text-blue-400 font-bold">
                             {formatCurrency(c.totalGoldAdvanceAmount || 0)}
                           </td>
                           <td className="p-4 text-right">
                             <div className="flex justify-end gap-2">
                               <button onClick={() => setSelectedCustomer(c)} 
-                                className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-2">
+                                className="text-[10px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-bold uppercase tracking-wider">
                                 <Plus className="w-3.5 h-3.5" /> Advance
                               </button>
-                              <button onClick={() => { setHistoryCustomer(c); setIsHistoryOpen(true); }} 
-                                className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 p-1.5 rounded-lg transition-all">
-                                <History className="w-4 h-4" />
+                              <button onClick={() => { setWithdrawUser(c); setIsWithdrawModalOpen(true); }} 
+                                className="text-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-bold uppercase tracking-wider">
+                                <ArrowUpRight className="w-3.5 h-3.5" /> Withdraw
                               </button>
-                              <button onClick={() => { setProfileUser(c); setIsProfileModalOpen(true); }} 
-                                className="text-xs bg-emerald-900 hover:bg-emerald-800 text-gray-400 border border-white/10 p-1.5 rounded-lg transition-all">
-                                <Eye className="w-4 h-4" />
+                              <button onClick={() => { setHistoryCustomer(c); setIsHistoryOpen(true); }} 
+                                className="text-xs bg-bg-app hover:bg-bg-surface text-text-secondary border border-gold-500/10 p-1.5 rounded-lg transition-all" title="View History">
+                                <History className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -413,45 +521,48 @@ export default function StaffDashboardPage() {
             {activeTab === "Transactions" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white">Customer Transactions</h3>
+                  <h3 className="text-xl font-bold text-text-primary">Customer Transactions</h3>
                 </div>
-                <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl overflow-x-auto">
+                <div className="bg-bg-surface/30 border border-gold-500/10 rounded-2xl overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-emerald-1000 text-xs text-gray-400 uppercase tracking-wider">
+                      <tr className="bg-bg-app text-[10px] text-text-secondary uppercase tracking-widest font-bold border-b border-gold-500/10">
                         <th className="p-4">Customer</th>
                         <th className="p-4">Type</th>
                         <th className="p-4">Amount</th>
+                        <th className="p-4">Description</th>
                         <th className="p-4">Processed By</th>
-                        <th className="p-4">Date</th>
                         <th className="p-4 text-right">Invoice</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-gold-500/5">
                       {transactions.map((tx) => (
                         <tr key={tx.id}>
                           <td className="p-4">
-                            <p className="text-white font-medium">{tx.user?.name}</p>
-                            <p className="text-[10px] text-gray-500">{tx.user?.email}</p>
+                            <p className="text-text-primary font-medium">{tx.user?.name}</p>
+                            <p className="text-[10px] text-text-secondary">{tx.user?.email}</p>
                           </td>
                           <td className="p-4">
-                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${tx.type === "WITHDRAWAL" ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
+                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${tx.type === "WITHDRAWAL" ? "bg-red-500/10 text-red-600 dark:text-red-400" : "bg-green-500/10 text-green-600 dark:text-green-400"}`}>
                               {tx.type}
                             </span>
                           </td>
-                          <td className={`p-4 font-bold ${tx.type === "WITHDRAWAL" ? "text-red-400" : "text-green-400"}`}>
+                          <td className={`p-4 font-bold ${tx.type === "WITHDRAWAL" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
                             {tx.type === "WITHDRAWAL" ? "-" : "+"}{formatCurrency(tx.amount)}
                           </td>
-                          <td className="p-4 text-gray-400 text-xs">
-                            {tx.performedBy?.name || "SYSTEM"}
+                          <td className="p-4 text-text-secondary text-xs italic max-w-[150px] truncate">
+                            {tx.description || "-"}
                           </td>
-                          <td className="p-4 text-gray-400 text-sm">
-                            {new Date(tx.createdAt).toLocaleDateString()}
+                          <td className="p-4">
+                            <p className="text-text-primary text-xs font-bold">{tx.performedBy?.name || "SYSTEM"}</p>
+                            <p className="text-[10px] text-text-secondary italic">{new Date(tx.createdAt).toLocaleDateString()}</p>
                           </td>
                           <td className="p-4 text-right">
-                            <button onClick={() => handleDownload(tx)} title="Download Receipt" className="p-2 text-blue-400 hover:text-blue-300 hover:scale-110 transition-all inline-flex">
-                              <Download className="w-4 h-4" />
-                            </button>
+                            {["GOLD_ADVANCE", "WITHDRAWAL", "DEPOSIT"].includes(tx.type) && (
+                              <button onClick={() => handleDownload(tx)} title="Download Receipt" className="p-2 text-blue-400 hover:text-blue-300 hover:scale-110 transition-all inline-flex">
+                                <Download className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -469,18 +580,18 @@ export default function StaffDashboardPage() {
                 <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-emerald-950/50 text-xs text-gray-400 uppercase">
+                      <tr className="bg-bg-app text-xs text-text-secondary uppercase tracking-wider">
                         <th className="p-4">Source</th>
                         <th className="p-4">Amount</th>
                         <th className="p-4 text-right">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-gold-500/5">
                       {earnings.map((e) => (
                         <tr key={e.id}>
-                          <td className="p-4 text-white text-sm">Daily Commission</td>
-                          <td className="p-4 text-green-400 font-bold">{formatCurrency(e.amount)}</td>
-                          <td className="p-4 text-right text-gray-400 text-sm">{new Date(e.createdAt).toLocaleDateString()}</td>
+                          <td className="p-4 text-text-primary text-sm">Daily Commission</td>
+                          <td className="p-4 text-green-600 dark:text-green-400 font-bold">{formatCurrency(e.amount)}</td>
+                          <td className="p-4 text-right text-text-secondary text-sm">{new Date(e.createdAt).toLocaleDateString()}</td>
                         </tr>
                       ))}
                       {earnings.length === 0 && (
@@ -489,6 +600,18 @@ export default function StaffDashboardPage() {
                     </tbody>
                   </table>
                 </div>
+              </motion.div>
+            )}
+            {activeTab === "Profile" && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                <ProfileTab 
+                  user={currentUser || user} 
+                  onUpdateSuccess={(updated) => {
+                    setCurrentUser(updated);
+                    localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
+                    showToast("Profile updated successfully!");
+                  }} 
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -509,13 +632,13 @@ export default function StaffDashboardPage() {
           callerRole="STAFF"
         />
 
-        <UserProfileModal
-          isOpen={isProfileModalOpen}
-          onClose={() => setIsProfileModalOpen(false)}
-          user={profileUser}
-          onUpdate={() => { refetchCustomers(); }}
-          callerRole="STAFF"
+        <ManualWithdrawalModal
+          isOpen={isWithdrawModalOpen}
+          onClose={() => setIsWithdrawModalOpen(false)}
+          user={withdrawUser}
+          onSuccess={(msg) => { showToast(msg); refetchCustomers(); }}
         />
+
 
         {/* Toasts & Modals */}
         <AnimatePresence>
@@ -531,10 +654,10 @@ export default function StaffDashboardPage() {
         <AnimatePresence>
           {toast && (
             <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-6 right-6 z-50 bg-emerald-950 border border-blue-500/30 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-blue-400 shrink-0" />
+              className="fixed bottom-6 right-6 z-50 bg-bg-surface border border-gold-500/20 text-text-primary px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm font-medium">{toast}</span>
-              <button onClick={() => setToast(null)}><X className="w-4 h-4 text-gray-500 hover:text-white" /></button>
+              <button onClick={() => setToast(null)}><X className="w-4 h-4 text-text-secondary hover:text-text-primary" /></button>
             </motion.div>
           )}
         </AnimatePresence>

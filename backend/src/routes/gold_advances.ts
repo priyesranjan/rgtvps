@@ -8,7 +8,7 @@ export const goldAdvanceRouter = Router();
 // Customer Endpoints
 goldAdvanceRouter.post("/", requireAuth, requireRole(Role.CUSTOMER), GoldAdvanceController.create);
 goldAdvanceRouter.get("/", requireAuth, requireRole(Role.CUSTOMER), GoldAdvanceController.list);
-goldAdvanceRouter.get("/:id/invoice", requireAuth, GoldAdvanceController.getInvoice);
+goldAdvanceRouter.get("/:id/invoice", GoldAdvanceController.getInvoice);
 
 // Admin & Staff Endpoints
 goldAdvanceRouter.get("/admin/all", requireAuth, requireRole(Role.ADMIN), GoldAdvanceController.adminList);

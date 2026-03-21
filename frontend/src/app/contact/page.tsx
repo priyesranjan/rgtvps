@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen flex flex-col bg-emerald-1000">
+    <main className="min-h-screen flex flex-col bg-bg-app">
       <Navbar />
       
       <section className="pt-40 pb-20 px-6 relative z-10 flex-1">
@@ -30,7 +30,7 @@ export default function ContactPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300 ml-1">Full Name</label>
-                    <input type="text" placeholder="John Doe" className="w-full bg-emerald-1000/50 border border-gold-500/20 focus:border-gold-500/60 text-white rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
+                    <input type="text" placeholder="John Doe" className="w-full bg-bg-app/50 border border-gold-500/20 focus:border-gold-500/60 text-text-primary rounded-xl py-3.5 px-4 outline-none transition-all placeholder:text-gray-600 focus:shadow-gold-glow" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300 ml-1">Phone Number</label>
@@ -53,7 +53,7 @@ export default function ContactPage() {
             <div className="flex flex-col gap-8 flex-1">
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="bg-emerald-950/40 border border-gold-500/10 p-6 rounded-2xl flex flex-col items-start gap-4 hover:border-gold-500/30 transition-colors">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-1000 border border-gold-500/20 flex items-center justify-center text-gold-400">
+                  <div className="w-12 h-12 rounded-xl bg-bg-app border border-gold-500/20 flex items-center justify-center text-gold-400">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>

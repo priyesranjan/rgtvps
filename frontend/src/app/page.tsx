@@ -19,7 +19,7 @@ export default function Home() {
     if (token && userJson) {
       try {
         const user = JSON.parse(userJson);
-        if (user.role === "CUSTOMER") router.push("/dashboard/investor");
+        if (user.role === "CUSTOMER") router.push("/dashboard/customer");
         else if (user.role === "STAFF") router.push("/dashboard/staff");
         else if (user.role === "ADMIN") router.push("/dashboard/admin");
       } catch (e) {

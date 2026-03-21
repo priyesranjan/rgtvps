@@ -8,15 +8,25 @@ import { InvoiceService } from "../services/InvoiceService";
 
 export class WithdrawalController {
   static async request(req: AuthRequest, res: Response) {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    const requesterId = req.user?.id;
+    const role = req.user?.role;
+    if (!requesterId) return res.status(401).json({ error: "Unauthorized" });
 
     try {
       const validatedData = CreateWithdrawalRequestSchema.parse(req.body);
+      
+      // If STAFF or ADMIN, they can specify a different userId.
+      // If CUSTOMER, they can only request for themselves.
+      const targetUserId = (role === "ADMIN" || role === "STAFF") && validatedData.userId 
+        ? validatedData.userId 
+        : requesterId;
+
       const request = await WithdrawalService.requestWithdrawal(
-        userId, 
+        targetUserId, 
         validatedData.amount, 
-        validatedData.source
+        validatedData.source,
+        validatedData.description,
+        requesterId // Pass who actually performed the action
       );
       res.status(201).json(request);
     } catch (error: any) {
@@ -130,7 +140,7 @@ export class WithdrawalController {
   static async getInvoice(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    // Allow public access via UUID for QR code verification
 
     try {
       const withdrawal = await prisma.withdrawalRequest.findUnique({
@@ -140,7 +150,8 @@ export class WithdrawalController {
 
       if (!withdrawal) return res.status(404).json({ error: "Voucher not found" });
       
-      if (req.user!.role === "CUSTOMER" && withdrawal.userId !== userId) {
+      // If logged in as CUSTOMER, ensure they own the withdrawal
+      if (req.user?.role === "CUSTOMER" && withdrawal.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
 

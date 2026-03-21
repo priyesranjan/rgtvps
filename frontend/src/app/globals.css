@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Core Colors */
+  /* Core Palette */
   --color-emerald-50: #ecfdf5;
   --color-emerald-100: #d1fae5;
   --color-emerald-200: #a7f3d0;
@@ -23,7 +23,14 @@
   --color-gold-700: #96711b;
   --color-gold-900: #42300b;
 
-  /* Typography variables injected from layout.tsx */
+  /* Theme Semantic Colors - Default (Light) */
+  --color-bg-app: var(--bg-app);
+  --color-bg-surface: var(--bg-surface);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-primary: var(--border-primary);
+
+  /* Typography */
   --font-sans: var(--font-inter);
   --font-heading: var(--font-heading);
 
@@ -33,16 +40,49 @@
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+:root {
+  /* Light Theme Variables - Premium Warm Palette */
+  --bg-app: #fafafa;
+  --bg-surface: #ffffff;
+  --text-primary: #1a1c1e;
+  --text-secondary: #5e6368;
+  --border-primary: rgba(212, 175, 55, 0.25);
+  
+  --emerald-gradient-start: #f0fdf4;
+  --emerald-gradient-end: #fafafa;
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(212, 175, 55, 0.2);
+}
+
+.dark {
+  /* Dark Theme Variables */
+  --bg-app: #000806;
+  --bg-surface: #011511;
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --border-primary: rgba(212, 175, 55, 0.15);
+
+  --emerald-gradient-start: #011511;
+  --emerald-gradient-end: #000806;
+  --glass-bg: rgba(1, 13, 10, 0.4);
+  --glass-border: rgba(212, 175, 55, 0.1);
+}
+
 @layer base {
   body {
-    background-color: var(--color-emerald-1000);
-    color: white;
+    background-color: var(--color-bg-app);
+    color: var(--color-text-primary);
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     letter-spacing: -0.025em;
+  }
+
+  * {
+    border-color: var(--color-border-primary);
   }
 }
 
@@ -51,13 +91,13 @@
     background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #96711B 100%);
   }
   .bg-emerald-gradient {
-    background: linear-gradient(180deg, #011511 0%, #000806 100%);
+    background: linear-gradient(180deg, var(--emerald-gradient-start) 0%, var(--emerald-gradient-end) 100%);
   }
   .bg-glass {
-    background: rgba(1, 13, 10, 0.4);
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(212, 175, 55, 0.1);
+    border: 1px solid var(--glass-border);
   }
   .text-gradient-gold {
     background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #96711B 100%);
@@ -70,6 +110,61 @@
   }
   .shadow-gold-glow-intense {
     box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.2);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(212, 175, 55, 0.4);
+  }
+
+  /* Vibrant Glassmorphism */
+  .bg-gold-glass {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(243, 229, 171, 0.05) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(212, 175, 55, 0.1);
+  }
+
+  .bg-blue-glass {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(59, 130, 246, 0.1);
+  }
+
+  .bg-green-glass {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.05) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.1);
+  }
+
+  .bg-red-glass {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(225, 29, 72, 0.05) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(239, 68, 68, 0.1);
+  }
+
+  .text-glow-gold {
+    text-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+  }
+
+  .text-glow-blue {
+    text-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
   }
 }
 

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 import PageTransition from "@/components/ui/PageTransition";
 import NextTopLoader from "nextjs-toploader";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,27 +28,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={cn(`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans bg-emerald-1000 text-white min-h-screen overflow-x-hidden`)}
+        className={cn(`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans min-h-screen overflow-x-hidden`)}
       >
-        {/* Premium gold progress bar on every navigation click */}
-        <NextTopLoader
-          color="#D4AF37"
-          initialPosition={0.1}
-          crawlSpeed={200}
-          height={3}
-          crawl={true}
-          showSpinner={false}
-          easing="ease"
-          speed={300}
-          shadow="0 0 10px #D4AF37,0 0 5px #D4AF37"
-        />
-        <PageTransition>
-          {children}
-        </PageTransition>
-        <FloatingWhatsApp />
+        <ThemeProvider>
+          {/* Premium gold progress bar on every navigation click */}
+          <NextTopLoader
+            color="#D4AF37"
+            initialPosition={0.1}
+            crawlSpeed={200}
+            height={3}
+            crawl={true}
+            showSpinner={false}
+            easing="ease"
+            speed={300}
+            shadow="0 0 10px #D4AF37,0 0 5px #D4AF37"
+          />
+          <PageTransition>
+            {children}
+          </PageTransition>
+          <FloatingWhatsApp />
+        </ThemeProvider>
       </body>
     </html>
   );

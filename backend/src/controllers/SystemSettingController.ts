@@ -13,7 +13,11 @@ export class SystemSettingController {
           data: {
             id: "default",
             showGST: true,
-            gstPercentage: 18.0
+            gstPercentage: 18.0,
+            monthlyProfitPercentage: 5.0,
+            monthlyReferralPercentage: 5.0,
+            monthlyStaffPercentage: 5.0,
+            showAdvancedSettings: false
           }
         });
       }
@@ -27,18 +31,33 @@ export class SystemSettingController {
 
   static async updateSettings(req: Request, res: Response) {
     try {
-      const { showGST, gstPercentage } = req.body;
+      const {
+        showGST,
+        gstPercentage,
+        monthlyProfitPercentage,
+        monthlyReferralPercentage,
+        monthlyStaffPercentage,
+        showAdvancedSettings
+      } = req.body;
 
       const settings = await prisma.systemSetting.upsert({
         where: { id: "default" },
         update: {
           showGST: showGST ?? true,
           gstPercentage: gstPercentage ?? 18.0,
+          monthlyProfitPercentage: monthlyProfitPercentage,
+          monthlyReferralPercentage: monthlyReferralPercentage,
+          monthlyStaffPercentage: monthlyStaffPercentage,
+          showAdvancedSettings: showAdvancedSettings
         },
         create: {
           id: "default",
           showGST: showGST ?? true,
           gstPercentage: gstPercentage ?? 18.0,
+          monthlyProfitPercentage: monthlyProfitPercentage ?? 5.0,
+          monthlyReferralPercentage: monthlyReferralPercentage ?? 5.0,
+          monthlyStaffPercentage: monthlyStaffPercentage ?? 5.0,
+          showAdvancedSettings: showAdvancedSettings ?? false
         }
       });
 

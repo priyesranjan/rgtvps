@@ -44,20 +44,20 @@ export default function Calculator() {
       const profitVal = totVal - invVal;
 
       return (
-        <div className="bg-emerald-1000/95 border border-gold-500/20 p-4 rounded-xl shadow-2xl backdrop-blur-md">
-          <p className="text-gray-400 mb-3 font-mono text-xs uppercase tracking-wider">{label} Projection</p>
+        <div className="bg-bg-surface/95 border border-gold-500/20 p-4 rounded-xl shadow-2xl backdrop-blur-md">
+          <p className="text-text-secondary mb-3 font-mono text-xs uppercase tracking-wider">{label} Projection</p>
           <div className="space-y-2">
-            <p className="text-white font-mono text-sm flex justify-between gap-4">
-              <span className="text-gray-400">Principal:</span> 
+            <p className="text-text-primary font-mono text-sm flex justify-between gap-4">
+              <span className="text-text-secondary">Principal:</span> 
               <span>₹{invVal.toLocaleString('en-IN')}</span>
             </p>
-            <p className="text-emerald-400 font-mono text-sm font-bold flex justify-between gap-4">
-              <span className="text-gray-400 font-normal">Est. Profit:</span> 
+            <p className="text-emerald-600 dark:text-emerald-400 font-mono text-sm font-bold flex justify-between gap-4">
+              <span className="text-text-secondary font-normal">Est. Profit:</span> 
               <span>+₹{profitVal.toLocaleString('en-IN')}</span>
             </p>
             <div className="h-px w-full bg-gold-500/20 my-2" />
-            <p className="text-gold-400 font-mono text-sm font-bold flex justify-between gap-4">
-              <span className="text-gray-400 font-normal">Total Value:</span> 
+            <p className="text-gold-600 dark:text-gold-400 font-mono text-sm font-bold flex justify-between gap-4">
+              <span className="text-text-secondary font-normal">Total Value:</span> 
               <span>₹{totVal.toLocaleString('en-IN')}</span>
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function Calculator() {
   };
 
   return (
-    <section className="py-24 relative overflow-hidden bg-emerald-950 border-y border-gold-500/10">
+    <section className="py-24 relative overflow-hidden bg-bg-surface border-y border-gold-500/10">
       {/* Background elements */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-gold-500/5 rounded-full blur-[120px]" />
       <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
@@ -90,7 +90,7 @@ export default function Calculator() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-gray-400 text-lg"
+            className="text-text-secondary text-lg"
           >
             Adjust your initial gold advance and targeted monthly return rate to map out your real-world physical asset growth.
           </motion.p>
@@ -104,7 +104,7 @@ export default function Calculator() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="lg:col-span-4 bg-emerald-1000/80 backdrop-blur-xl border border-gold-500/20 rounded-3xl p-8 shadow-2xl relative flex flex-col justify-between"
+            className="lg:col-span-4 bg-bg-app/80 backdrop-blur-xl border border-gold-500/20 rounded-3xl p-8 shadow-2xl relative flex flex-col justify-between"
           >
             {/* Subtle inner top highlight */}
             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-500/50 to-transparent" />
@@ -117,7 +117,7 @@ export default function Calculator() {
                   <label className="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center">
                     <Coins className="w-4 h-4 mr-2 text-gold-500" /> Gold Advance Amount
                   </label>
-                  <div className="text-2xl font-mono font-bold text-white">
+                  <div className="text-2xl font-mono font-bold text-text-primary">
                     ₹{goldAdvance.toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -173,11 +173,11 @@ export default function Calculator() {
 
               {/* Outputs */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="flex sm:flex-col items-center justify-between sm:justify-center p-4 rounded-xl bg-emerald-950 border border-gold-500/10">
-                  <span className="text-xs text-gray-400 uppercase font-semibold flex items-center sm:mb-2 text-nowrap">
+                <div className="flex sm:flex-col items-center justify-between sm:justify-center p-4 rounded-xl bg-bg-surface border border-gold-500/10">
+                  <span className="text-xs text-text-secondary uppercase font-semibold flex items-center sm:mb-2 text-nowrap">
                     <CalendarDays className="w-4 h-4 mr-2 text-gold-500/70 hidden sm:block" /> Daily
                   </span>
-                  <span className="text-base sm:text-lg font-mono font-semibold text-gray-200">₹{dailyYield.toLocaleString('en-IN')}</span>
+                  <span className="text-base sm:text-lg font-mono font-semibold text-text-primary">₹{dailyYield.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex sm:flex-col items-center justify-between sm:justify-center p-4 rounded-xl bg-emerald-900 border border-gold-500/30 shadow-gold-glow/10 sm:transform sm:scale-105 z-10 relative">
                   <div className="hidden sm:block absolute inset-x-0 -top-px h-px bg-gold-400/50" />
@@ -186,11 +186,11 @@ export default function Calculator() {
                   </span>
                   <span className="text-lg sm:text-xl font-mono font-bold text-white">₹{weeklyYield.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex sm:flex-col items-center justify-between sm:justify-center p-4 rounded-xl bg-emerald-950 border border-gold-500/10">
-                  <span className="text-xs text-gray-400 uppercase font-semibold flex items-center sm:mb-2 text-nowrap">
+                <div className="flex sm:flex-col items-center justify-between sm:justify-center p-4 rounded-xl bg-bg-surface border border-gold-500/10">
+                  <span className="text-xs text-text-secondary uppercase font-semibold flex items-center sm:mb-2 text-nowrap">
                     <CalendarClock className="w-4 h-4 mr-2 text-gold-500/70 hidden sm:block" /> Monthly
                   </span>
-                  <span className="text-base sm:text-lg font-mono font-semibold text-gray-200">₹{monthlyYield.toLocaleString('en-IN')}</span>
+                  <span className="text-base sm:text-lg font-mono font-semibold text-text-primary">₹{monthlyYield.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -203,16 +203,16 @@ export default function Calculator() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="lg:col-span-8 bg-emerald-1000/40 backdrop-blur-md border border-gold-500/10 rounded-3xl p-6 lg:p-8 flex flex-col h-full min-h-[500px]"
+            className="lg:col-span-8 bg-bg-surface/40 backdrop-blur-md border border-gold-500/10 rounded-3xl p-6 lg:p-8 flex flex-col h-full min-h-[500px]"
           >
             <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2">
               <div>
-                <h3 className="text-lg sm:text-xl font-heading font-semibold text-white">12-Month Growth Projection</h3>
-                <p className="text-xs sm:text-sm text-gray-400 mt-1">Estimated compounding value over one year</p>
+                <h3 className="text-lg sm:text-xl font-heading font-semibold text-text-primary">12-Month Growth Projection</h3>
+                <p className="text-xs sm:text-sm text-text-secondary mt-1">Estimated compounding value over one year</p>
               </div>
-              <div className="w-full sm:w-auto text-left sm:text-right bg-emerald-950 border border-gold-500/20 px-4 py-2 rounded-xl mt-2 sm:mt-0">
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Est. Value (1 Yr)</p>
-                <p className="text-xl sm:text-2xl font-mono font-bold text-gold-400">
+              <div className="w-full sm:w-auto text-left sm:text-right bg-bg-surface border border-gold-500/20 px-4 py-2 rounded-xl mt-2 sm:mt-0">
+                <p className="text-[10px] text-text-secondary uppercase tracking-wider mb-1">Total Est. Value (1 Yr)</p>
+                <p className="text-xl sm:text-2xl font-mono font-bold text-gold-500">
                   ₹{(goldAdvance + (monthlyYield * 12)).toLocaleString('en-IN')}
                 </p>
               </div>
@@ -275,13 +275,13 @@ export default function Calculator() {
               </ResponsiveContainer>
             </div>
             
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-gray-400">
-              <div className="flex items-center px-3 py-1.5 rounded-full bg-emerald-950 border border-blue-500/20">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-text-secondary">
+              <div className="flex items-center px-3 py-1.5 rounded-full bg-bg-surface border border-blue-500/20">
                 <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mr-2 opacity-80"></div>
                 Principal Advance
               </div>
-              <div className="flex items-center px-3 py-1.5 rounded-full bg-emerald-950 border border-gold-500/20">
-                <div className="w-2.5 h-2.5 rounded-full bg-gold-400 mr-2 shadow-[0_0_8px_rgba(212,175,55,0.8)]"></div>
+              <div className="flex items-center px-3 py-1.5 rounded-full bg-bg-surface border border-gold-500/20">
+                <div className="w-2.5 h-2.5 rounded-full bg-gold-500 dark:bg-gold-400 mr-2 shadow-[0_0_8px_rgba(212,175,55,0.8)]"></div>
                 Projected Growth
               </div>
             </div>

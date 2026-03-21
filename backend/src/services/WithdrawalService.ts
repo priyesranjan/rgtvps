@@ -25,7 +25,7 @@ export class WithdrawalService {
   /**
    * Submit a withdrawal request
    */
-  static async requestWithdrawal(userId: string, amount: number, source: WithdrawalSource = WithdrawalSource.PROFIT) {
+  static async requestWithdrawal(userId: string, amount: number, source: WithdrawalSource = WithdrawalSource.PROFIT, description?: string, requestedById?: string) {
     // ... logic remains same ...
     const wallet = await WalletService.getOrCreateWallet(userId);
     let available = 0;
@@ -49,6 +49,7 @@ export class WithdrawalService {
         amount,
         source,
         status: WithdrawalStatus.PENDING,
+        description,
       },
     });
 
@@ -56,9 +57,9 @@ export class WithdrawalService {
       actionType: AuditAction.WITHDRAWAL_REQUEST_CREATED,
       entityType: "WithdrawalRequest",
       entityId: request.id,
-      performedByUserId: userId,
+      performedByUserId: requestedById || userId,
       newData: request as any,
-      description: `Withdrawal request of ${amount} submitted from ${source}`
+      description: `Withdrawal request of ${amount} submitted from ${source}${description ? ' - ' + description : ''}`
     });
 
     return request;

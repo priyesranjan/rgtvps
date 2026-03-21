@@ -14,19 +14,30 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatCurrency(amount: number | string): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  if (isNaN(num)) return "₹0";
+  if (isNaN(num)) return "₹0.00";
 
-  // Thresholds
+  const absNum = Math.abs(num);
   const ONE_LAKH = 100000;
   const ONE_CRORE = 10000000;
 
-  if (Math.abs(num) >= ONE_CRORE) {
-    return `₹${(num / ONE_CRORE).toFixed(2).replace(/\.00$/, "")} Cr`;
-  } else if (Math.abs(num) >= ONE_LAKH) {
-    return `₹${(num / ONE_LAKH).toFixed(2).replace(/\.00$/, "")} Lakh`;
+  // Only use compact formatting (Lakh/Cr) if it's a "clean" millions/lakhs number 
+  // OR if it's very large (e.g. > 10 Lakhs or > 1 Crore).
+  // For the user's specific case (9,99,999), we should show the full number.
+  
+  if (absNum >= ONE_CRORE) {
+    const crores = num / ONE_CRORE;
+    // Round to 2 decimals BUT if it's very close to 1.0, don't round up to the next threshold
+    // unless it's actually that large. 
+    // Actually, just use toLocaleString with precision.
+    return `₹${crores.toLocaleString("en-IN", { maximumFractionDigits: 2 }).replace(/\.00$/, "")} Cr`;
+  } else if (absNum >= 10 * ONE_LAKH) { // Threshold for "Lakh" suffix shifted to 10 Lakhs (1 Million)
+    const lakhs = num / ONE_LAKH;
+    return `₹${lakhs.toLocaleString("en-IN", { maximumFractionDigits: 2 }).replace(/\.00$/, "")} Lakh`;
   } else {
+    // Show full number for anything below 10 Lakhs for financial precision
     return `₹${num.toLocaleString("en-IN", {
       maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
     })}`;
   }
 }

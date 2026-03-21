@@ -59,6 +59,35 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formDataUpload = new FormData();
+    formDataUpload.append("photo", file);
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/upload/profile`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formDataUpload
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to upload photo");
+
+      setFormData(prev => ({ ...prev, photo: data.url }));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReferrerLookup = async (mobile: string) => {
     setReferrerMobile(mobile);
     if (mobile.length === 10) {
@@ -98,7 +127,8 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/auth/register`, {
+      const endpoint = callerRole === "ADMIN" ? "/admin/users" : "/auth/register";
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,7 +177,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-emerald-950 border border-gold-500/20 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          className="bg-bg-surface border border-gold-500/20 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -156,11 +186,11 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
               <div className="p-2 bg-gold-500/10 rounded-lg">
                 <UserPlus className="w-5 h-5 text-gold-400" />
               </div>
-              <h2 className="text-xl font-heading font-bold text-white tracking-wide">
-                Register New <span className="text-gold-400">User</span>
+              <h2 className="text-xl font-heading font-bold text-text-primary tracking-wide">
+                Register New <span className="text-gold-500">User</span>
               </h2>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -176,15 +206,15 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
             <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Full Name</label>
-                  <div className="relative group">
-                    <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-gold-400 transition-colors" />
+                <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 block">Full Name</label>
+                <div className="relative group">
+                  <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary group-focus-within:text-gold-500 transition-colors" />
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-3 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all placeholder:text-gray-600"
+                      className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all placeholder:text-text-secondary/50"
                       placeholder="Enter full name"
                     />
                   </div>
@@ -221,17 +251,32 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                     />
                   </div>
                 </div>
+              </div>
 
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 block">Mobile No</label>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.contactNo}
+                    onChange={(e) => setFormData({ ...formData, contactNo: e.target.value })}
+                    className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all font-medium"
+                    placeholder="10-digit mobile"
+                  />
+                </div>
                 {callerRole === "ADMIN" && (
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">User Role</label>
+                    <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 block">User Role</label>
                     <select
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-3 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all"
+                      className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all font-medium"
                     >
+                      <option value="CUSTOMER">Customer</option>
                       <option value="STAFF">Staff Member</option>
-                      <option value="CUSTOMER">Customer / Investor</option>
+                      <option value="ADMIN">Administrator</option>
+                      <option value="SUPERADMIN">Super Administrator</option>
                     </select>
                   </div>
                 )}
@@ -246,36 +291,26 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                 >
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">Mobile No</label>
-                      <input
-                        type="tel"
-                        value={formData.contactNo}
-                        onChange={(e) => setFormData({ ...formData, contactNo: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all"
-                        placeholder="10-digit mobile"
-                      />
-                    </div>
-                    <div>
                       <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">PAN No</label>
                       <input
                         type="text"
                         value={formData.pan}
                         onInput={(e) => (e.currentTarget.value = e.currentTarget.value.toUpperCase())}
                         onChange={(e) => setFormData({ ...formData, pan: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all uppercase"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all uppercase"
                         placeholder="ABCDE1234F"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">Aadhar No</label>
-                    <input
-                      type="text"
-                      value={formData.aadharNo}
-                      onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all"
-                      placeholder="XXXX-XXXX-XXXX"
-                    />
+                    <div>
+                      <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">Aadhar No</label>
+                      <input
+                        type="text"
+                        value={formData.aadharNo}
+                        onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value })}
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all"
+                        placeholder="XXXX-XXXX-XXXX"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -284,7 +319,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                       <select
                         value={formData.gender}
                         onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all"
                       >
                         <option value="MALE">Male</option>
                         <option value="FEMALE">Female</option>
@@ -297,20 +332,37 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                         type="date"
                         value={formData.dob}
                         onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">Photo URL</label>
-                    <input
-                      type="url"
-                      value={formData.photo}
-                      onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all"
-                      placeholder="https://example.com/photo.jpg"
-                    />
+                    <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">Profile Photo</label>
+                    <div className="flex items-center gap-4">
+                      {formData.photo && (
+                        <div className="w-12 h-12 rounded-full border border-gold-500/20 overflow-hidden bg-bg-app">
+                          <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1 relative group">
+                        <input
+                          type="file"
+                          id="reg-photo-upload"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('reg-photo-upload')?.click()}
+                          className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all text-left flex items-center justify-between"
+                        >
+                          <span className="truncate">{formData.photo ? "Change Uploaded Photo" : "Upload Photo Directly"}</span>
+                          {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -318,7 +370,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                     <textarea
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all min-h-[80px]"
+                      className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all min-h-[80px]"
                       placeholder="Enter residence address"
                     />
                   </div>
@@ -329,7 +381,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                         type="tel"
                         value={referrerMobile}
                         onChange={(e) => handleReferrerLookup(e.target.value)}
-                        className="w-full bg-emerald-1000 border border-blue-500/20 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+                        className="w-full bg-bg-app border border-blue-500/20 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all"
                         placeholder="Enter referrer's mobile"
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -353,7 +405,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                       <select
                         value={formData.staffId}
                         onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-blue-500/20 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all font-medium"
+                        className="w-full bg-bg-app border border-blue-500/20 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all font-medium"
                       >
                         <option value="">No Staff Assigned</option>
                         {staffList.map(s => (
@@ -364,18 +416,18 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                   )}
 
                   <div className="pt-4 border-t border-gold-500/10">
-                    <label className="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-2 block italic">Initial Gold Advance Deposite (Optional)</label>
+                    <label className="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-2 block italic">Initial Gold Advance (Optional)</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-sm">₹</div>
                       <input
                         type="number"
                         value={formData.initialGoldAdvanceAmount || ""}
                         onChange={(e) => setFormData({ ...formData, initialGoldAdvanceAmount: Number(e.target.value) })}
-                        className="w-full bg-emerald-1000/50 border border-green-500/20 focus:border-green-500/40 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none transition-all placeholder:text-gray-600 font-bold"
+                        className="w-full bg-bg-app/50 border border-green-500/20 focus:border-green-500/40 rounded-xl py-3 pl-10 pr-4 text-text-primary text-sm focus:outline-none transition-all placeholder:text-text-secondary/50 font-bold"
                         placeholder="0.00"
                       />
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-2">Entering an amount here will automatically create an active Gold Advance and a Deposit transaction for the customer.</p>
+                    <p className="text-[10px] text-gray-500 mt-2">Entering an amount here will automatically create an active Gold Advance transaction for the customer.</p>
                   </div>
                 </motion.div>
               )}

@@ -14,4 +14,6 @@ export const CreateManualGoldAdvanceSchema = z.object({
 export const CreateWithdrawalRequestSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   source: z.nativeEnum(WithdrawalSource).optional(),
+  userId: z.string().optional(),
+  description: z.string().optional(),
 });

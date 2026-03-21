@@ -7,7 +7,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-emerald-1000 border-t border-gold-500/10 pt-20 pb-10 overflow-hidden">
+    <footer className="relative bg-bg-app border-t border-gold-500/10 pt-20 pb-10 overflow-hidden">
       {/* Subtle Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-gold-500/5 rounded-[100%] blur-[80px]" />
 
@@ -25,12 +25,12 @@ export default function Footer() {
                 className="object-contain"
               />
             </Link>
-            <p className="text-gray-400 leading-relaxed max-w-sm">
+            <p className="text-text-secondary leading-relaxed max-w-sm">
               The premier institution for physical gold advances. We offer uncompromised security, reliable yield generation, and exclusive concierge services for discerning participants.
             </p>
             
             {/* Compliance Badges */}
-            <div className="flex flex-col gap-1.5 mt-2 bg-emerald-950/40 p-3.5 rounded-xl border border-gold-500/20 w-fit shadow-lg shadow-black/20">
+            <div className="flex flex-col gap-1.5 mt-2 bg-bg-surface p-3.5 rounded-xl border border-gold-500/20 w-fit shadow-lg shadow-black/5 dark:shadow-black/20">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-gold-500 w-4 h-4" />
                 <span className="text-sm font-semibold tracking-wide text-gray-200">ISO 9001:2015 Certified Company</span>
@@ -41,7 +41,7 @@ export default function Footer() {
             </div>
 
             <div className="flex items-center gap-4 mt-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-bg-surface border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-bg-app hover:border-gold-500 transition-all duration-300">
                 <Facebook size={18} />
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
@@ -127,7 +127,7 @@ export default function Footer() {
                 <input 
                   type="email" 
                   placeholder="Enter your private email" 
-                  className="w-full bg-emerald-950 border border-gold-500/20 text-white px-4 py-3 rounded-md sm:rounded-r-none sm:rounded-l-md outline-none focus:border-gold-500/50 transition-colors text-sm"
+                  className="w-full bg-bg-app border border-gold-500/20 text-text-primary px-4 py-3 rounded-md sm:rounded-r-none sm:rounded-l-md outline-none focus:border-gold-500/50 transition-colors text-sm"
                 />
                 <button className="bg-gold-gradient text-emerald-1000 px-5 py-3 sm:py-0 rounded-md sm:rounded-l-none sm:rounded-r-md font-semibold hover:shadow-gold-glow transition-all flex items-center justify-center">
                   <span className="sm:hidden mr-2">Subscribe</span>

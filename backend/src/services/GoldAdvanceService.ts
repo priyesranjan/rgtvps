@@ -94,6 +94,7 @@ export class GoldAdvanceService {
           userId,
           advanceAmount: amount,
           status: GoldAdvanceStatus.ACTIVE,
+          description,
         },
       });
 

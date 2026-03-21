@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 import { authRouter } from "./routes/auth";
 import { goldAdvanceRouter } from "./routes/gold_advances";
 import { withdrawalRouter } from "./routes/withdrawals";
@@ -11,10 +12,12 @@ import { walletRouter } from "./routes/wallet";
 import { returnRouter } from "./routes/returns";
 import { referralRouter } from "./routes/referrals";
 import { auditRouter } from "./routes/audit";
+import { uploadRouter } from "./routes/upload";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { Role } from "@prisma/client";
 import { startDailyReturnCron } from "./cron/dailyProfitCron";
 import { SystemSettingController } from "./controllers/SystemSettingController";
+import { FeatureFlagController } from "./controllers/FeatureFlagController";
 
 dotenv.config();
 
@@ -44,10 +47,19 @@ app.use("/api/wallet", walletRouter);
 app.use("/api/daily-returns", returnRouter);
 app.use("/api/referrals", referralRouter);
 app.use("/api/audit", auditRouter);
+app.use("/api/upload", uploadRouter);
+
+// Serve static files from storage directory
+app.use("/uploads", express.static(path.join(process.cwd(), "storage", "uploads")));
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 app.get("/api/settings", SystemSettingController.getSettings);
-app.put("/api/settings", requireAuth, requireRole(Role.ADMIN), SystemSettingController.updateSettings);
+app.put("/api/settings", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), SystemSettingController.updateSettings);
+
+// ── Feature Flags ─────────────────────────────────────────────────────────────
+app.get("/api/feature-flags", requireAuth, FeatureFlagController.getFlags);
+app.put("/api/feature-flags/:key", requireAuth, requireRole(Role.SUPERADMIN), FeatureFlagController.updateFlag);
+app.delete("/api/feature-flags/:key", requireAuth, requireRole(Role.SUPERADMIN), FeatureFlagController.deleteFlag);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {

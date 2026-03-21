@@ -64,7 +64,7 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-emerald-950 border border-gold-500/20 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+          className="bg-bg-surface border border-gold-500/20 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -74,13 +74,13 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
                 <Wallet className="w-5 h-5 text-gold-400" />
               </div>
               <div>
-                <h2 className="text-lg font-heading font-bold text-white tracking-wide">
-                  Add <span className="text-gold-400">Gold Advance</span>
+                <h2 className="text-lg font-heading font-bold text-text-primary tracking-wide">
+                  Add <span className="text-gold-500 dark:text-gold-400">Gold Advance</span>
                 </h2>
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">For: {user.name}</p>
+                <p className="text-[10px] text-text-secondary font-medium uppercase tracking-wider">For: {user.name}</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -94,7 +94,7 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
             )}
 
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
+              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2 block">
                 Advance Amount (₹)
               </label>
               <div className="relative group">
@@ -106,7 +106,7 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-3.5 pl-10 pr-4 text-white text-lg font-bold focus:outline-none focus:border-gold-500/40 transition-all placeholder:text-gray-700"
+                  className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3.5 pl-10 pr-4 text-text-primary text-lg font-bold focus:outline-none focus:border-gold-500/40 transition-all placeholder:text-text-secondary/30"
                   placeholder="0.00"
                 />
               </div>
@@ -115,16 +115,16 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
 
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
-                Comment / Description
+                Description
               </label>
               <div className="relative group">
-                <MessageSquare className="absolute left-4 top-4 w-4 h-4 text-gray-500 group-focus-within:text-gold-400 transition-colors" />
+                <MessageSquare className="absolute left-4 top-4 w-4 h-4 text-text-secondary group-focus-within:text-gold-500 transition-colors" />
                 <textarea
                   required
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="w-full bg-emerald-1000 border border-gold-500/10 rounded-xl py-3.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-gold-500/40 transition-all placeholder:text-gray-700 min-h-[100px] resize-none"
-                  placeholder="Record the source or reason for this manual advance..."
+                  className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3.5 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all placeholder:text-text-secondary/30 min-h-[100px] resize-none"
+                  placeholder="Describe the source or reason for this manual gold advance..."
                 />
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
               <button
                 type="submit"
                 disabled={loading || !amount || !comment}
-                className="w-full bg-gold-500 hover:bg-gold-400 disabled:bg-gold-500/20 disabled:text-emerald-950/40 text-emerald-1000 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-lg shadow-gold-500/10"
+                className="w-full bg-gold-500 hover:bg-gold-400 disabled:bg-gold-500/20 disabled:text-text-secondary/40 text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-lg shadow-gold-500/10"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -145,7 +145,7 @@ export default function AddGoldAdvanceModal({ isOpen, onClose, onSuccess, user }
                 )}
               </button>
               <p className="text-[10px] text-center text-gray-600 mt-4 italic">
-                This action will create an ACTIVE gold advance and log a DEPOSIT transaction.
+                This action will create an ACTIVE gold advance and log a GOLD ADVANCE transaction.
               </p>
             </div>
           </form>

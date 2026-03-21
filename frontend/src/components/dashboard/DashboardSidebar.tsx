@@ -48,31 +48,31 @@ export default function DashboardSidebar({
   
   const accentClasses = {
     gold: {
-      text: "text-gold-400",
+      text: "text-gold-500",
       bgSubtle: "bg-gold-500/10",
       borderSubtle: "border-gold-500/20",
-      hover: "hover:text-white hover:bg-white/5",
+      hover: "hover:text-gold-600 hover:bg-gold-500/5 dark:hover:text-white dark:hover:bg-white/5",
       sidebarBorder: "border-gold-500/10"
     },
     blue: {
-      text: "text-blue-400",
+      text: "text-blue-500",
       bgSubtle: "bg-blue-500/10",
       borderSubtle: "border-blue-500/20",
-      hover: "hover:text-white hover:bg-white/5",
+      hover: "hover:text-blue-600 hover:bg-blue-500/5 dark:hover:text-white dark:hover:bg-white/5",
       sidebarBorder: "border-blue-500/10"
     },
     green: {
-      text: "text-green-400",
-      bgSubtle: "bg-green-500/10",
-      borderSubtle: "border-green-500/20",
-      hover: "hover:text-white hover:bg-white/5",
-      sidebarBorder: "border-green-500/10"
+      text: "text-emerald-500",
+      bgSubtle: "bg-emerald-500/10",
+      borderSubtle: "border-emerald-500/20",
+      hover: "hover:text-emerald-600 hover:bg-emerald-500/5 dark:hover:text-white dark:hover:bg-white/5",
+      sidebarBorder: "border-emerald-500/10"
     },
     purple: {
-      text: "text-purple-400",
+      text: "text-purple-500",
       bgSubtle: "bg-purple-500/10",
       borderSubtle: "border-purple-500/20",
-      hover: "hover:text-white hover:bg-white/5",
+      hover: "hover:text-purple-600 hover:bg-purple-500/5 dark:hover:text-white dark:hover:bg-white/5",
       sidebarBorder: "border-purple-500/10"
     }
   }[accentColor];
@@ -81,20 +81,26 @@ export default function DashboardSidebar({
     <div className="flex flex-col h-full max-h-screen">
       {/* Header - Fixed Height */}
       <div className={cn("p-6 sm:p-8 border-b shrink-0", accentClasses.sidebarBorder)}>
-        <Link href="/" className="text-xl sm:text-2xl font-heading font-bold tracking-wider text-white">
+        <Link href="/" className="text-xl sm:text-2xl font-heading font-bold tracking-wider text-text-primary">
           <span className={accentClasses.text}>RGT</span> {roleLabel}
         </Link>
         <div className="mt-8 flex items-center gap-3">
           <div className={cn(
-            "w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0",
-            user.iconBg || "bg-emerald-900",
-            user.borderColor || "border-white/10",
+            "w-10 h-10 rounded-full border-2 overflow-hidden flex items-center justify-center shrink-0",
+            user.iconBg || "bg-bg-surface",
+            user.borderColor || "border-gold-500/20",
             user.iconColor || "text-white"
           )}>
-            {user.icon ? <user.icon className="w-5 h-5" /> : (user.name?.[0] || "U")}
+            {(user as any).photo ? (
+              <img src={(user as any).photo} alt={user.name} className="w-full h-full object-cover" />
+            ) : user.icon ? (
+              <user.icon className="w-5 h-5" />
+            ) : (
+              user.name?.[0] || "U"
+            )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user.name}</p>
+            <p className="text-sm font-medium text-text-primary truncate">{user.name}</p>
             <div className={cn("flex items-center text-[10px] sm:text-xs mt-0.5", user.iconColor || "text-gray-400")}>
               <span className="truncate">{user.details || user.role}</span>
             </div>
@@ -115,10 +121,10 @@ export default function DashboardSidebar({
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group",
               activeTab === item.id
                 ? cn(accentClasses.bgSubtle, accentClasses.text, "border", accentClasses.borderSubtle)
-                : accentClasses.hover + " text-gray-400"
+                : accentClasses.hover + " text-text-secondary"
             )}
           >
-            <item.icon className={cn("w-4 h-4 shrink-0 transition-colors", activeTab === item.id ? accentClasses.text : "group-hover:text-white")} />
+            <item.icon className={cn("w-4 h-4 shrink-0 transition-colors", activeTab === item.id ? accentClasses.text : "group-hover:text-gold-500 dark:group-hover:text-white")} />
             <span className="truncate">{item.name}</span>
             {item.badge !== undefined && (
               <span className={cn(
@@ -149,7 +155,7 @@ export default function DashboardSidebar({
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "w-72 bg-emerald-950/50 border-r hidden lg:flex flex-col sticky top-0 h-screen z-20",
+        "w-72 bg-bg-surface/50 border-r hidden lg:flex flex-col sticky top-0 h-screen z-20",
         accentClasses.sidebarBorder
       )}>
         <SidebarContent />
@@ -170,7 +176,7 @@ export default function DashboardSidebar({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-72 h-full bg-emerald-950 border-r border-white/5 shadow-2xl"
+              className="w-72 h-full bg-bg-surface border-r border-gold-500/5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <SidebarContent />

@@ -54,20 +54,20 @@ export default function Hero() {
             transition={{ duration: 0.8 }}
             className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-900/50 border border-gold-500/20 backdrop-blur-sm shrink-0">
-              <ShieldCheck className="w-4 h-4 text-gold-400 shrink-0" />
-              <span className="text-sm font-medium text-gray-300">Institutional-Grade Security</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/50 border border-gold-500/20 backdrop-blur-sm shrink-0">
+              <ShieldCheck className="w-4 h-4 text-gold-500 shrink-0" />
+              <span className="text-sm font-medium text-text-secondary">Institutional-Grade Security</span>
             </div>
 
             {/* Client Trust Badge */}
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-900/50 border border-gold-500/20 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-bg-surface/50 border border-gold-500/20 backdrop-blur-sm">
               <div className="flex -space-x-2 shrink-0">
-                <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white border-2 border-emerald-1000">JD</div>
-                <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-emerald-1000">VK</div>
-                <div className="w-7 h-7 rounded-full bg-yellow-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-emerald-1000">SK</div>
+                <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white border-2 border-bg-app">JD</div>
+                <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-bg-app">VK</div>
+                <div className="w-7 h-7 rounded-full bg-yellow-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-bg-app">SK</div>
               </div>
-              <span className="text-sm font-medium text-gray-300">
-                Trusted by <span className="text-white font-semibold">500+ Clients in Patna</span>
+              <span className="text-sm font-medium text-text-secondary">
+                Trusted by <span className="text-text-primary font-semibold">500+ Clients in Patna</span>
               </span>
             </div>
           </motion.div>
@@ -87,7 +87,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-gray-400 max-w-lg leading-relaxed"
+            className="text-lg md:text-xl text-text-secondary max-w-lg leading-relaxed"
           >
             Participate directly in physical gold. Earn steady, reliable returns with zero market hassle, backed by tangible assets in our secure facilities.
           </motion.p>

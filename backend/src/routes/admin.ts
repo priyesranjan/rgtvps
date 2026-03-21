@@ -5,10 +5,13 @@ import { Role } from "@prisma/client";
 
 export const adminRouter = Router();
 
-adminRouter.get("/staff/list", requireAuth, requireRole(Role.ADMIN), AdminController.listAllStaff);
-adminRouter.get("/users", requireAuth, requireRole(Role.ADMIN), AdminController.getUsers);
-adminRouter.post("/reassign-staff", requireAuth, requireRole(Role.ADMIN), AdminController.reassignStaff);
-adminRouter.get("/transactions", requireAuth, requireRole(Role.ADMIN), AdminController.getAllTransactions);
-adminRouter.get("/transactions/:userId", requireAuth, requireRole(Role.ADMIN), AdminController.getUserTransactions);
-adminRouter.get("/stats", requireAuth, requireRole(Role.ADMIN), AdminController.getDashboardStats);
-adminRouter.patch("/users/:userId", requireAuth, requireRole(Role.ADMIN), AdminController.updateUser);
+adminRouter.get("/staff/list", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.listAllStaff);
+adminRouter.get("/users", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.getUsers);
+adminRouter.post("/users", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.createUser);
+adminRouter.patch("/users/:userId", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.updateUser);
+adminRouter.delete("/users/:userId", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.deleteUser);
+adminRouter.post("/reassign-staff", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.reassignStaff);
+adminRouter.get("/transactions", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.getAllTransactions);
+adminRouter.get("/transactions/:userId", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.getUserTransactions);
+adminRouter.get("/stats", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.getDashboardStats);
+adminRouter.patch("/users/:userId", requireAuth, requireRole(Role.ADMIN, Role.SUPERADMIN), AdminController.updateUser);

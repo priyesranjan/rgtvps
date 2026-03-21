@@ -10,7 +10,7 @@ export class GoldAdvanceController {
   static async getInvoice(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    // Allow public access via UUID for QR code verification
 
     try {
       const advance = await prisma.goldAdvance.findUnique({
@@ -20,7 +20,8 @@ export class GoldAdvanceController {
 
       if (!advance) return res.status(404).json({ error: "Invoice not found" });
       
-      if (req.user!.role === "CUSTOMER" && advance.userId !== userId) {
+      // If logged in as CUSTOMER, ensure they own the advance
+      if (req.user?.role === "CUSTOMER" && advance.userId !== userId) {
         return res.status(403).json({ error: "Access denied" });
       }
 

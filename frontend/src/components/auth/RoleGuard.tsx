@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 interface RoleGuardProps {
   children: React.ReactNode;
-  allowedRoles: ("ADMIN" | "STAFF" | "CUSTOMER")[];
+  allowedRoles: ("SUPERADMIN" | "ADMIN" | "STAFF" | "CUSTOMER")[];
 }
 
 export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
@@ -28,11 +28,11 @@ export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
         const user = JSON.parse(userStr);
         const role = user.role;
 
-        if (!allowedRoles.includes(role)) {
+        if (role !== "SUPERADMIN" && !allowedRoles.includes(role)) {
           // Redirect to the appropriate dashboard if they have the wrong role
-          if (role === "ADMIN") router.push("/dashboard/admin");
+          if (role === "ADMIN" || role === "SUPERADMIN") router.push("/dashboard/admin");
           else if (role === "STAFF") router.push("/dashboard/staff");
-          else if (role === "CUSTOMER") router.push("/dashboard/investor");
+          else if (role === "CUSTOMER") router.push("/dashboard/customer");
           else router.push("/");
           return;
         }

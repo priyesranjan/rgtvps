@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, User, Mail, Shield, Wallet, Users, ArrowRightLeft, 
@@ -27,6 +27,13 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isAddAdvanceOpen, setIsAddAdvanceOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setSelectedStaffId(user.staffId || "");
+      setMessage(null);
+    }
+  }, [user, isOpen]);
 
   const handleReassign = async () => {
     setLoading(true);
@@ -64,11 +71,11 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-emerald-950 border border-gold-500/20 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+              className="bg-bg-surface border border-gold-500/20 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-4 sm:p-6 border-b border-gold-500/10 flex items-center justify-between bg-emerald-1000/50 shrink-0">
+              <div className="p-4 sm:p-6 border-b border-gold-500/10 flex items-center justify-between bg-bg-app/50 shrink-0">
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-400 font-bold text-lg sm:text-xl overflow-hidden shrink-0">
                     {user.photo ? (
@@ -78,8 +85,8 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-lg sm:text-xl font-heading font-bold text-white tracking-wide truncate">{user.name}</h2>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest truncate">{user.role} · {user.id}</p>
+                    <h2 className="text-lg sm:text-xl font-heading font-bold text-text-primary tracking-wide truncate">{user.name}</h2>
+                    <p className="text-[10px] text-text-secondary uppercase tracking-widest truncate">{user.role} · {user.id}</p>
                   </div>
                 </div>
                 <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors ml-2">
@@ -158,12 +165,12 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="bg-emerald-1000/30 p-2.5 rounded-lg border border-white/5">
-                        <p className="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Current Advance Profit</p>
+                      <div className="bg-bg-app/30 p-2.5 rounded-lg border border-gold-500/5">
+                        <p className="text-[9px] text-text-secondary uppercase font-bold mb-0.5">Current Advance Profit</p>
                         <p className="text-sm font-bold text-green-500/80">{formatCurrency(user.wallet?.profitAmount || 0)}</p>
                       </div>
-                      <div className="bg-emerald-1000/30 p-2.5 rounded-lg border border-white/5">
-                        <p className="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Current Referral Profit</p>
+                      <div className="bg-bg-app/30 p-2.5 rounded-lg border border-gold-500/5">
+                        <p className="text-[9px] text-text-secondary uppercase font-bold mb-0.5">Current Referral Profit</p>
                         <p className="text-sm font-bold text-blue-500/80">{formatCurrency(user.wallet?.referralAmount || 0)}</p>
                       </div>
                     </div>
@@ -212,13 +219,13 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
                         <Shield className="w-3.5 h-3.5" /> Service Assignment
                       </h3>
                       
-                      <div className="p-5 bg-emerald-1000/50 rounded-2xl border border-white/5 relative overflow-hidden">
+                      <div className="p-5 bg-bg-app/50 rounded-2xl border border-gold-500/10 relative overflow-hidden">
                         {!isReassigning ? (
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Current Staff</p>
-                              <p className="text-sm text-white font-medium">{user.assignedStaff?.name || "Unassigned"}</p>
-                              <p className="text-xs text-gray-500">{user.assignedStaff?.email || "N/A"}</p>
+                              <p className="text-[10px] text-text-secondary uppercase font-bold mb-1">Current Staff</p>
+                              <p className="text-sm text-text-primary font-medium">{user.assignedStaff?.name || "Unassigned"}</p>
+                              <p className="text-xs text-text-secondary">{user.assignedStaff?.email || "N/A"}</p>
                             </div>
                             <button 
                               onClick={() => setIsReassigning(true)}
@@ -234,7 +241,7 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
                               <select
                                 value={selectedStaffId}
                                 onChange={(e) => setSelectedStaffId(e.target.value)}
-                                className="w-full bg-emerald-950 border border-gold-500/20 rounded-xl py-2.5 px-3 text-sm text-white focus:outline-none focus:border-gold-500/50"
+                                className="w-full bg-bg-app border border-gold-500/20 rounded-xl py-2.5 px-3 text-sm text-text-primary focus:outline-none focus:border-gold-500/50"
                               >
                                 <option value="">Unassigned</option>
                                 {allStaff.map(s => (
@@ -279,9 +286,9 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
                       <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <Users className="w-3.5 h-3.5" /> Managed Portfolio
                       </h3>
-                      <div className="bg-emerald-1000/50 p-6 rounded-2xl border border-white/5 text-center">
-                        <p className="text-3xl font-bold text-white mb-2">{user.customers?.length || 0}</p>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">Active Customers</p>
+                      <div className="bg-bg-app/50 p-6 rounded-2xl border border-gold-500/10 text-center">
+                        <p className="text-3xl font-bold text-text-primary mb-2">{user.customers?.length || 0}</p>
+                        <p className="text-xs text-text-secondary uppercase tracking-wider">Active Customers</p>
                       </div>
                     </section>
                   )}

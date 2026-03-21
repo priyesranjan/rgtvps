@@ -22,6 +22,12 @@ export class ProfitDistributionService {
       }
     });
 
+    // Fetch Global Settings for Rates
+    const settings = await prisma.systemSetting.findUnique({ where: { id: "default" } });
+    const profitMonthlyRate = Number(settings?.monthlyProfitPercentage || 5.0) / 100;
+    const referralMonthlyRate = Number(settings?.monthlyReferralPercentage || 5.0) / 100;
+    const staffMonthlyRate = Number(settings?.monthlyStaffPercentage || 5.0) / 100;
+
     const results = {
       processed: 0,
       totalDistributed: 0,
@@ -52,12 +58,15 @@ export class ProfitDistributionService {
 
         await prisma.$transaction(async (tx) => {
           const advanceAmount = Number(advance.advanceAmount);
-          // 5% monthly profit rule: (advanceAmount * 0.05) / 30
-          const dailyProfit = Number(((advanceAmount * 0.05) / 30).toFixed(2));
+          
+          // Monthly rate logic: (advanceAmount * Rate) / 30 days
+          const dailyProfit = Number(((advanceAmount * profitMonthlyRate) / 30).toFixed(2));
+          const referralReward = Number(((advanceAmount * referralMonthlyRate) / 30).toFixed(2));
+          const staffCommission = Number(((advanceAmount * staffMonthlyRate) / 30).toFixed(2));
           
           if (dailyProfit <= 0) return;
 
-          // 1. Credit Customer
+          // 1. Credit Customer Profit
           await WalletService.updateBalance(advance.userId, { profitAmount: dailyProfit }, tx);
           
           await tx.transaction.create({
@@ -69,49 +78,43 @@ export class ProfitDistributionService {
             }
           });
 
-          // 2. Credit Referrer (5% monthly equivalent = same as dailyProfit)
-          if (advance.user.referredBy) {
-            const referralReward = dailyProfit;
-            if (referralReward > 0) {
-              await WalletService.updateBalance(advance.user.referredBy, { referralAmount: referralReward }, tx);
-              
-              await tx.transaction.create({
-                data: {
-                  userId: advance.user.referredBy,
-                  type: TransactionType.REFERRAL,
-                  amount: referralReward,
-                  description: `Referral reward from customer ${advance.user.name} (Advance #${advance.id})`,
-                }
-              });
-              results.totalReferral += referralReward;
-            }
+          // 2. Credit Referrer (if exists)
+          if (advance.user.referredBy && referralReward > 0) {
+            await WalletService.updateBalance(advance.user.referredBy, { referralAmount: referralReward }, tx);
+            
+            await tx.transaction.create({
+              data: {
+                userId: advance.user.referredBy,
+                type: TransactionType.REFERRAL,
+                amount: referralReward,
+                description: `Referral reward from customer ${advance.user.name} (Advance #${advance.id})`,
+              }
+            });
+            results.totalReferral += referralReward;
           }
 
-          // 3. Credit Staff (5% monthly equivalent = same as dailyProfit)
-          if (advance.user.staffId) {
-            const staffCommission = dailyProfit;
-            if (staffCommission > 0) {
-              await tx.staffCommission.create({
-                data: {
-                  staffId: advance.user.staffId,
-                  customerId: advance.userId,
-                  amount: staffCommission
-                }
-              });
+          // 3. Credit Staff (if exists)
+          if (advance.user.staffId && staffCommission > 0) {
+            await tx.staffCommission.create({
+              data: {
+                staffId: advance.user.staffId,
+                customerId: advance.userId,
+                amount: staffCommission
+              }
+            });
 
-              // Credit to staffCommissionBalance specifically
-              await WalletService.updateBalance(advance.user.staffId, { staffCommissionBalance: staffCommission }, tx);
-              
-              await tx.transaction.create({
-                data: {
-                  userId: advance.user.staffId,
-                  type: TransactionType.STAFF_COMMISSION,
-                  amount: staffCommission,
-                  description: `Commission from customer ${advance.user.name} (Advance #${advance.id})`,
-                }
-              });
-              results.totalStaff += staffCommission;
-            }
+            // Credit to staffCommissionBalance specifically
+            await WalletService.updateBalance(advance.user.staffId, { staffCommissionBalance: staffCommission }, tx);
+            
+            await tx.transaction.create({
+              data: {
+                userId: advance.user.staffId,
+                type: TransactionType.STAFF_COMMISSION,
+                amount: staffCommission,
+                description: `Commission from customer ${advance.user.name} (Advance #${advance.id})`,
+              }
+            });
+            results.totalStaff += staffCommission;
           }
 
           results.processed++;

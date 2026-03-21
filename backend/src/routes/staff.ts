@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 
 export const staffRouter = Router();
 
+staffRouter.get("/leaderboard", requireAuth, requireRole(Role.STAFF, Role.ADMIN), StaffController.getLeaderboard);
 staffRouter.get("/stats", requireAuth, requireRole(Role.STAFF), StaffController.getDashboardStats);
 staffRouter.get("/customers", requireAuth, requireRole(Role.STAFF), StaffController.getCustomers);
 staffRouter.get("/earnings", requireAuth, requireRole(Role.STAFF), StaffController.getEarnings);

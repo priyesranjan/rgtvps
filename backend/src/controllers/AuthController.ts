@@ -12,7 +12,7 @@ const registerSchema = z.object({
   role: z.nativeEnum(Role).optional(),
   referredBy: z.string().optional().nullable(),
   staffId: z.string().optional().nullable(),
-  contactNo: z.string().regex(/^[6-9]\d{9}$/, "Invalid Indian mobile number"),
+  contactNo: z.string().regex(/^(\+91|91|0)?[6-9]\d{9}$/, "Invalid Indian mobile number"),
   aadharNo: z.string().length(12, "Aadhar must be 12 digits").optional().nullable(),
   pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format").optional().nullable(),
   address: z.string().optional().nullable(),

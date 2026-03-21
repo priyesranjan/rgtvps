@@ -57,6 +57,35 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
     }
   }, [initialUser, isOpen]);
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formDataUpload = new FormData();
+    formDataUpload.append("photo", file);
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/upload/profile`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formDataUpload
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to upload photo");
+
+      setFormData(prev => ({ ...prev, photo: data.url }));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -100,23 +129,23 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-emerald-950 border border-gold-500/20 w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          className="bg-bg-surface border border-gold-500/20 w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="p-6 border-b border-gold-500/10 flex items-center justify-between bg-emerald-1000/50">
+          <div className="p-6 border-b border-gold-500/10 flex items-center justify-between bg-bg-app/50">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-500/10 rounded-2xl">
                 <User className="w-6 h-6 text-blue-400" />
               </div>
               <div>
-                <h2 className="text-xl font-heading font-bold text-white tracking-wide">
-                  Customer <span className="text-blue-400">Profile</span>
+                <h2 className="text-xl font-heading font-bold text-text-primary tracking-wide">
+                  Customer <span className="text-blue-500">Profile</span>
                 </h2>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Edit Personal Details & Security</p>
+                <p className="text-[10px] text-text-secondary uppercase tracking-widest mt-0.5">Edit Personal Details & Security</p>
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+            <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors p-2 hover:bg-bg-app rounded-full">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -140,18 +169,18 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
             <div className="grid md:grid-cols-2 gap-6">
               {/* Basic Info */}
               <div className="space-y-6">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 pb-2">Basic Information</h3>
+                <h3 className="text-[10px] font-bold text-text-secondary uppercase tracking-widest border-b border-gold-500/5 pb-2">Basic Information</h3>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 mb-1.5 block">Full Name</label>
+                    <label className="text-xs font-semibold text-text-secondary mb-1.5 block">Full Name</label>
                     <div className="relative group">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-blue-400 transition-colors" />
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all"
                       />
                     </div>
                   </div>
@@ -177,7 +206,7 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                         type="tel"
                         value={formData.mobile}
                         onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all"
                       />
                     </div>
                   </div>
@@ -212,7 +241,7 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                         value={formData.pan}
                         onInput={(e) => (e.currentTarget.value = e.currentTarget.value.toUpperCase())}
                         onChange={(e) => setFormData({ ...formData, pan: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all uppercase"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all uppercase"
                         placeholder="ABCDE1234F"
                       />
                     </div>
@@ -230,6 +259,7 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                           <option value="CUSTOMER">Customer</option>
                           <option value="STAFF">Staff</option>
                           <option value="ADMIN">Admin</option>
+                          <option value="SUPERADMIN">SuperAdmin</option>
                         </select>
                       </div>
                       <div>
@@ -257,7 +287,7 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                       <select
                         value={formData.gender}
                         onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 px-3 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+                        className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-3 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all"
                       >
                         <option value="MALE">Male</option>
                         <option value="FEMALE">Female</option>
@@ -276,14 +306,31 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 mb-1.5 block">Photo URL</label>
-                    <input
-                      type="url"
-                      value={formData.photo}
-                      onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 px-3 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all"
-                      placeholder="https://example.com/photo.jpg"
-                    />
+                    <label className="text-xs font-semibold text-gray-400 mb-1.5 block">Profile Photo</label>
+                    <div className="flex items-center gap-4">
+                      {formData.photo && (
+                        <div className="w-12 h-12 rounded-full border border-white/10 overflow-hidden bg-bg-app">
+                          <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1 relative group">
+                        <input
+                          type="file"
+                          id="edit-photo-upload"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('edit-photo-upload')?.click()}
+                          className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all text-left flex items-center justify-between"
+                        >
+                          <span className="truncate">{formData.photo ? "Change Photo" : "Upload Photo"}</span>
+                          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -291,7 +338,7 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                     <textarea
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 px-3 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all min-h-[100px]"
+                      className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-3 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all min-h-[100px]"
                       placeholder="Full residential address"
                     />
                   </div>
@@ -315,7 +362,7 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
               </div>
             )}
 
-            <div className="pt-4 flex justify-between items-center bg-emerald-1000/30 p-6 -mx-8 -mb-8 mt-auto border-t border-white/5">
+            <div className="pt-4 flex justify-between items-center bg-bg-app/30 p-6 -mx-8 -mb-8 mt-auto border-t border-gold-500/10">
               <button
                 type="button"
                 onClick={onClose}

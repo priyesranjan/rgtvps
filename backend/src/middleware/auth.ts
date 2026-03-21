@@ -38,7 +38,7 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
 
 export function requireRole(...roles: Role[]) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user || (req.user.role !== Role.SUPERADMIN && !roles.includes(req.user.role))) {
       res.status(403).json({ error: "Forbidden — insufficient role" });
       return;
     }

@@ -17,9 +17,9 @@ export default function BranchBarChart({ data }: Props) {
           cursor={{ fill: "#ffffff0a" }}
           contentStyle={{ backgroundColor: "#0B1120", borderColor: "#D4AF37", borderRadius: "8px", color: "#fff" }}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          formatter={(value: any, name: any) => [`₹${Number(value ?? 0).toLocaleString()}`, name === "deposits" ? "Deposits" : "Withdrawals"]}
+          formatter={(value: any, name: any) => [`₹${Number(value ?? 0).toLocaleString()}`, name === "deposits" ? "Gold Advances" : "Withdrawals"]}
         />
-        <Legend formatter={(v) => v === "deposits" ? "Deposits" : "Withdrawals"} iconType="circle" />
+        <Legend formatter={(v) => v === "deposits" ? "Gold Advances" : "Withdrawals"} iconType="circle" />
         <Bar dataKey="deposits" name="deposits" fill="#D4AF37" radius={[4, 4, 0, 0]} />
         <Bar dataKey="withdrawals" name="withdrawals" fill="#3b82f6" radius={[4, 4, 0, 0]} />
       </BarChart>

@@ -10,13 +10,10 @@ datasource db {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum Role {
+  SUPERADMIN
   CUSTOMER
   STAFF
   ADMIN
-  TECH_TEAM
-  MANAGER
-  EMPLOYEE
-  INVESTOR
 }
 
 enum GoldAdvanceStatus {
@@ -94,6 +91,8 @@ model User {
   transactions Transaction[]
   withdrawals  WithdrawalRequest[]
   performedTransactions Transaction[] @relation("PerformedTransactions")
+  commissions     StaffCommission[] @relation("StaffCommissions")
+  paidCommissions StaffCommission[] @relation("CustomerCommissions")
   
   // Relations
   referrer     User?    @relation("ReferrerRelation", fields: [referredBy], references: [id])
@@ -137,6 +136,7 @@ model GoldAdvance {
   advanceAmount Decimal          @db.Decimal(15, 2)
   startDate     DateTime         @default(now())
   status        GoldAdvanceStatus @default(ACTIVE)
+  description   String?
   
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
@@ -177,6 +177,7 @@ model WithdrawalRequest {
   amount    Decimal          @db.Decimal(15, 2)
   source    WithdrawalSource @default(PROFIT)
   status    WithdrawalStatus @default(PENDING)
+  description String?
   
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
@@ -215,7 +216,9 @@ model Referral {
 model StaffCommission {
   id         String   @id @default(cuid())
   staffId    String
+  staff      User     @relation("StaffCommissions", fields: [staffId], references: [id])
   customerId String
+  customer   User     @relation("CustomerCommissions", fields: [customerId], references: [id])
   amount     Decimal  @db.Decimal(15, 2)
   
   createdAt  DateTime @default(now())
@@ -235,8 +238,29 @@ model DailyProfitLog {
 }
 
 model SystemSetting {
-  id            String  @id @default("default")
-  showGST       Boolean @default(true)
-  gstPercentage Decimal @default(18.0) @db.Decimal(5, 2)
-  updatedAt     DateTime @updatedAt
+  id                        String  @id @default("default")
+  showGST                   Boolean @default(true)
+  gstPercentage             Decimal @default(18.0) @db.Decimal(5, 2)
+  
+  // Profit Configuration
+  monthlyProfitPercentage   Decimal @default(5.0) @db.Decimal(5, 2)
+  monthlyReferralPercentage Decimal @default(5.0) @db.Decimal(5, 2)
+  monthlyStaffPercentage    Decimal @default(5.0) @db.Decimal(5, 2)
+  
+  // Feature Flags
+  showAdvancedSettings      Boolean @default(false)
+  
+  updatedAt                 DateTime @updatedAt
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  description String?
+  isEnabled   Boolean  @default(false)
+  category    String   @default("FEATURE") // ROLE, FEATURE, NOTIFICATION, CUSTOM
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

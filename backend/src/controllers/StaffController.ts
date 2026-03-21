@@ -242,4 +242,42 @@ export class StaffController {
       res.status(500).json({ error: error.message });
     }
   }
+
+  static async getLeaderboard(req: AuthRequest, res: Response) {
+    try {
+      const leaderboardData = await prisma.user.findMany({
+        where: { role: "STAFF" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          photo: true,
+          _count: {
+            select: { customers: true }
+          },
+          commissions: {
+            select: {
+              amount: true
+            }
+          }
+        }
+      });
+
+      const formatted = leaderboardData.map(staff => {
+        const totalCommission = staff.commissions.reduce((sum, c) => sum + Number(c.amount), 0);
+        return {
+          id: staff.id,
+          name: staff.name,
+          email: staff.email,
+          photo: staff.photo,
+          customersCount: staff._count.customers,
+          totalCommission
+        };
+      }).sort((a, b) => b.totalCommission - a.totalCommission);
+
+      res.json(formatted);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
 }

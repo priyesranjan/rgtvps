@@ -3,11 +3,17 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole, AuthRequest } from "../middleware/auth";
 import { Role } from "@prisma/client";
+import { uploadProfile } from "../middleware/upload";
 import { getPaginationOptions, formatPaginationResponse } from "../lib/pagination";
+import { ProfileController } from "../controllers/ProfileController";
 
 export const usersRouter = Router();
 
 usersRouter.use(requireAuth);
+
+// ── PATCH /api/users/profile ────────────────────────────────────────────────
+usersRouter.patch("/profile", ProfileController.updateProfile);
+usersRouter.patch("/profile/photo", uploadProfile.single("photo"), ProfileController.uploadPhoto);
 
 // ── GET /api/users/:id ────────────────────────────────────────────────────────
 usersRouter.get("/:id", async (req: AuthRequest, res: Response) => {

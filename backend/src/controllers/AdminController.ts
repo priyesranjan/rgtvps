@@ -4,7 +4,7 @@ import { prisma } from "../lib/prisma";
 import { getPaginationOptions, formatPaginationResponse } from "../lib/pagination";
 
 import { AuditService } from "../services/AuditService";
-import { AuditAction } from "@prisma/client";
+import { AuditAction, Role } from "@prisma/client";
 
 export class AdminController {
   static async listAllStaff(req: AuthRequest, res: Response) {
@@ -19,15 +19,85 @@ export class AdminController {
     }
   }
 
+  static async createUser(req: AuthRequest, res: Response) {
+    const { 
+      name, email, password, role, contactNo, aadharNo, pan, 
+      address, photo, gender, dob, initialGoldAdvanceAmount,
+      referredBy, staffId 
+    } = req.body;
+
+    try {
+      // Check if user already exists
+      const existingUser = await prisma.user.findFirst({
+        where: { OR: [{ email }, { contactNo }] }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ 
+          error: existingUser.email === email ? "Email already in use" : "Contact number already in use" 
+        });
+      }
+
+      const hashedPassword = await (require("bcryptjs")).hash(password || "password123", 10);
+
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: role as any,
+          contactNo,
+          mobile: contactNo,
+          aadharNo,
+          pan: pan ? pan.toUpperCase() : null,
+          address,
+          photo,
+          gender,
+          dob: dob ? new Date(dob) : null,
+          initialGoldAdvanceAmount: initialGoldAdvanceAmount ? Number(initialGoldAdvanceAmount) : 0,
+          referredBy: referredBy === "" ? null : referredBy,
+          staffId: staffId === "" ? null : staffId,
+          wallet: {
+            create: {
+              goldAdvanceAmount: 0,
+              profitAmount: 0,
+              referralAmount: 0,
+              totalWithdrawable: 0
+            }
+          }
+        }
+      });
+
+      // Log Audit
+      await AuditService.logAction({
+        actionType: AuditAction.CUSTOMER_CREATED,
+        entityType: "User",
+        entityId: user.id,
+        performedByUserId: req.user?.id,
+        performedByRole: req.user?.role,
+        newData: { id: user.id, email: user.email, role: user.role },
+        description: `User ${user.id} created by Super Admin ${req.user?.id}`,
+        ipAddress: req.ip
+      });
+
+      res.status(201).json({ message: "User created successfully", user });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getUsers(req: AuthRequest, res: Response) {
     try {
       const { skip, take, page, limit } = getPaginationOptions(req);
-      const role = (req.query.role as string) || "CUSTOMER";
+      const role = (req.query.role as string) || "ALL";
       const search = (req.query.search as string) || "";
       const sortBy = (req.query.sortBy as string) || "createdAt";
       const sortOrder = (req.query.sortOrder as string) || "desc";
 
-      const where: any = { role: role as any };
+      const where: any = {};
+      if (role !== "ALL") {
+        where.role = role as any;
+      }
       
       if (search) {
         where.OR = [
@@ -144,10 +214,14 @@ export class AdminController {
     try {
       const { skip, take, page, limit } = getPaginationOptions(req);
       const search = (req.query.search as string) || "";
+      const type = (req.query.type as string) || "";
       const sortBy = (req.query.sortBy as string) || "createdAt";
       const sortOrder = (req.query.sortOrder as string) || "desc";
 
       const where: any = {};
+      if (type) {
+        where.type = type;
+      }
       if (search) {
         where.OR = [
           { description: { contains: search } },
@@ -230,7 +304,7 @@ export class AdminController {
 
   static async getDashboardStats(req: AuthRequest, res: Response) {
     try {
-      const investorsCount = await prisma.user.count({ where: { role: "CUSTOMER" } });
+      const customersCount = await prisma.user.count({ where: { role: "CUSTOMER" } });
       const staffCount = await prisma.user.count({ where: { role: "STAFF" } });
       const pendingWithdrawalsCount = await prisma.withdrawalRequest.count({ where: { status: "PENDING" } });
       const totalPendingWithdrawalAmount = await (prisma.withdrawalRequest as any).aggregate({
@@ -372,7 +446,7 @@ export class AdminController {
         todayWithdrawals: Number(todayWithdrawalsAgg._sum.amount || 0),
         monthlyNetFlow: monthlyDeposits - Number(monthlyWithdrawalsAgg._sum.amount || 0),
         monthlyGrowth: Number(monthlyGrowth.toFixed(2)),
-        investorsCount,
+        customersCount,
         staffCount,
         pendingWithdrawalsCount,
         totalPendingAmount: Number(totalPendingWithdrawalAmount._sum.amount || 0),
@@ -392,7 +466,7 @@ export class AdminController {
 
   static async updateUser(req: AuthRequest, res: Response) {
     const { userId } = req.params;
-    const { name, email, contactNo, aadharNo, pan, role, staffId, referredBy, address, photo, gender, dob } = req.body;
+    const { name, email, password, contactNo, aadharNo, pan, role, staffId, referredBy, address, photo, gender, dob } = req.body;
 
     try {
       const existingUser = await prisma.user.findUnique({ where: { id: userId } });
@@ -405,7 +479,7 @@ export class AdminController {
         if (existing) return res.status(400).json({ error: "Contact number already in use" });
       }
 
-      const user: any = await (prisma.user as any).update({
+      const updateData: any = {
         where: { id: userId },
         data: {
           name, 
@@ -423,7 +497,14 @@ export class AdminController {
           gender: gender || null,
           dob: dob ? new Date(dob) : null
         }
-      });
+      };
+
+      if (password) {
+        const hashedPassword = await (require("bcryptjs")).hash(password, 10);
+        updateData.data.password = hashedPassword;
+      }
+
+      const user: any = await (prisma.user as any).update(updateData);
 
       // Log Audit
       await AuditService.logAction({
@@ -439,6 +520,61 @@ export class AdminController {
       });
 
       res.json({ message: "User updated successfully", user });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteUser(req: AuthRequest, res: Response) {
+    const { userId } = req.params;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          goldAdvances: { where: { status: "ACTIVE" } },
+          withdrawals: { where: { status: "PENDING" } }
+        }
+      });
+
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      if (user.role === Role.ADMIN || user.role === Role.SUPERADMIN) {
+         // Safety check for deleting admins
+         if (req.user?.role !== Role.SUPERADMIN) {
+           return res.status(403).json({ error: "Only Super Admin can delete administrative users" });
+         }
+      }
+
+      if (user.goldAdvances.length > 0) {
+        return res.status(400).json({ error: "Cannot delete user with active gold advances" });
+      }
+
+      if (user.withdrawals.length > 0) {
+        return res.status(400).json({ error: "Cannot delete user with pending withdrawals" });
+      }
+
+      // Perform deletion (Prisma will handle relations if set to cascade, 
+      // but we should be careful. CustomerService might need to be used if complex logic exists)
+      
+      // For now, we'll hard delete the user and their wallet
+      await prisma.$transaction([
+        prisma.wallet.deleteMany({ where: { userId } }),
+        prisma.user.delete({ where: { id: userId } })
+      ]);
+
+      // Log Audit
+      await AuditService.logAction({
+        actionType: AuditAction.WALLET_ADJUSTED, // No DIRECT delete action in enum, using closest
+        entityType: "User",
+        entityId: userId,
+        previousData: user,
+        performedByUserId: req.user?.id,
+        performedByRole: req.user?.role,
+        description: `User ${userId} deleted by Super Admin ${req.user?.id}`,
+        ipAddress: req.ip
+      });
+
+      res.json({ message: "User deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

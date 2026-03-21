@@ -15,86 +15,26 @@ async function main() {
   await (prisma as any).wallet.deleteMany({});
   await (prisma as any).dailyProfitLog.deleteMany({});
   await (prisma as any).staffCommission.deleteMany({});
+  await (prisma as any).featureFlag.deleteMany({});
   await (prisma as any).user.deleteMany({});
   await (prisma as any).systemSetting.deleteMany({});
 
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const passwordHash = await bcrypt.hash("adRGT@2026", 10);
 
-  // ── Admin ─────────────────────────────────────────────────────────────────────
+  // ── Super Admin ─────────────────────────────────────────────────────────────
   const admin = await (prisma.user as any).upsert({
-    where: { email: "admin@rgt.com" },
+    where: { email: "appdostofficial@gmail.com" },
     update: {},
     create: {
       name: "Super Admin",
-      email: "admin@rgt.com",
+      email: "appdostofficial@gmail.com",
       password: passwordHash,
-      role: Role.ADMIN,
+      role: Role.SUPERADMIN,
       contactNo: "0000000001",
       wallet: { create: {} }
     },
   });
-  console.log(`✅ Admin: ${admin.name} (${admin.email})`);
-
-  // ── Staff ─────────────────────────────────────────────────────────────────────
-  const staff = await (prisma.user as any).upsert({
-    where: { email: "staff@rgt.com" },
-    update: {},
-    create: {
-      name: "Staff Member",
-      email: "staff@rgt.com",
-      password: passwordHash,
-      role: Role.STAFF,
-      contactNo: "0000000002",
-      wallet: { create: {} }
-    },
-  });
-
-  // ── Customer ──────────────────────────────────────────────────────────────────
-  const customer = await (prisma.user as any).upsert({
-    where: { email: "customer@rgt.com" },
-    update: {},
-    create: {
-      name: "John Doe",
-      email: "customer@rgt.com",
-      password: passwordHash,
-      role: Role.CUSTOMER,
-      contactNo: "9876543210",
-      mobile: "9876543210",
-      staffId: staff.id,
-      initialGoldAdvanceAmount: 100000,
-      wallet: { 
-        create: { goldAdvanceAmount: 100000, totalWithdrawable: 100000 } 
-      }
-    },
-  });
-
-
-
-  // ── Sample Gold Advance ───────────────────────────────────────────────────────
-  const existingAdvance = await prisma.goldAdvance.findFirst({
-    where: { userId: customer.id }
-  });
-
-  if (!existingAdvance) {
-    await (prisma.goldAdvance as any).create({
-      data: {
-        userId: customer.id,
-        advanceAmount: 100000,
-        status: "ACTIVE"
-      }
-    });
-
-    await (prisma.transaction as any).create({
-      data: {
-        userId: customer.id,
-        performedById: admin.id,
-        type: "DEPOSIT",
-        amount: 100000,
-        balanceAfter: 100000,
-        description: "Initial Gold Advance Deposit"
-      }
-    });
-  }
+  console.log(`✅ Super Admin: ${admin.name} (${admin.email})`);
 
   // ── System Setting ───────────────────────────────────────────────────────────
   await (prisma as any).systemSetting.upsert({
@@ -107,6 +47,16 @@ async function main() {
     }
   });
   console.log("✅ System settings initialized.");
+
+  // ── Feature Flags ───────────────────────────────────────────────────────────
+  await (prisma.featureFlag as any).createMany({
+    data: [
+      { key: "REFER_EARN", label: "Refer & Earn System", description: "Enable referral commissions", isEnabled: true, category: "FEATURE" },
+      { key: "WITHDRAWALS", label: "Customer Withdrawals", description: "Allow users to request payouts", isEnabled: true, category: "FEATURE" },
+    ]
+  });
+  console.log("✅ Feature flags seeded.");
+  console.log("✅ Feature flags seeded.");
 }
 
 main()

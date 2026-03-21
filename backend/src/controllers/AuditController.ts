@@ -9,8 +9,8 @@ export class AuditController {
    * Get all audit logs (Admin only)
    */
   static async getLogs(req: AuthRequest, res: Response) {
-    if (req.user?.role !== Role.ADMIN) {
-      return res.status(403).json({ error: "Access denied. Admin only." });
+    if (req.user?.role !== Role.ADMIN && req.user?.role !== Role.SUPERADMIN) {
+      return res.status(403).json({ error: "Access denied. Administrative roles only." });
     }
 
     const { actionType, entityType, entityId, performedByUserId, startDate, endDate } = req.query;
@@ -60,7 +60,7 @@ export class AuditController {
     const { entityType, entityId } = req.params;
 
     // Admin or Staff can view (Staff might need restrictions, but for now allow)
-    if (req.user?.role !== Role.ADMIN && req.user?.role !== Role.STAFF) {
+    if (req.user?.role !== Role.ADMIN && req.user?.role !== Role.STAFF && req.user?.role !== Role.SUPERADMIN) {
       return res.status(403).json({ error: "Access denied." });
     }
 
