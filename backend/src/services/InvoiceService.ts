@@ -38,7 +38,7 @@ export class InvoiceService {
       refLabel: "Advance ID",
       isTaxable: true,
       performedByName,
-      verificationUrl: `http://localhost:4000/api/gold-advances/${advanceId}/invoice`
+      verificationUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/gold-advances/${advanceId}/invoice`
     });
   }
 
@@ -76,7 +76,7 @@ export class InvoiceService {
       refLabel: "Withdrawal ID",
       isTaxable: false,
       performedByName,
-      verificationUrl: `http://localhost:4000/api/withdrawal-requests/${withdrawalId}/invoice`
+      verificationUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/withdrawal-requests/${withdrawalId}/invoice`
     });
   }
 
@@ -141,38 +141,8 @@ export class InvoiceService {
       minute: '2-digit'
     });
 
-    // ── Load Logo ───────────────────────────────────────────────────────────
-    let logoBase64 = "";
-    let logoMimeType = "image/png"; // Default to PNG
-    try {
-      // Prefer PNG logo as it's much smaller than the current SVG (577KB vs 4.3MB)
-      let logoPath = path.join(__dirname, "../../../frontend/public/RoyalGoldTrader-Logo.png");
-      
-      // In production (__dirname = backend/dist/src/services), we need 4 levels up
-      if (!fs.existsSync(logoPath)) {
-        logoPath = path.join(__dirname, "../../../../frontend/public/RoyalGoldTrader-Logo.png");
-      }
-
-      // Fallback to SVG if PNG is missing
-      if (!fs.existsSync(logoPath)) {
-        logoPath = path.join(__dirname, "../../../frontend/public/RoyalGoldTrader-Logo.svg");
-        if (!fs.existsSync(logoPath)) {
-          logoPath = path.join(__dirname, "../../../../frontend/public/RoyalGoldTrader-Logo.svg");
-        }
-        if (fs.existsSync(logoPath)) {
-            logoMimeType = "image/svg+xml";
-        }
-      }
-      
-      if (fs.existsSync(logoPath)) {
-        const logoData = fs.readFileSync(logoPath);
-        logoBase64 = logoData.toString('base64');
-      } else {
-        console.warn("⚠️ [InvoiceService] Logo file not found at any expected path");
-      }
-    } catch (error) {
-      console.error("❌ [InvoiceService] Error loading logo:", error);
-    }
+    // ── Load Logo (Using Cloudflare R2 Direct URL) ──────────────────────────
+    const logoUrl = "https://pub-ee54ba2945a04c56b29b01ae5ec3c085.r2.dev/profiles/RoyalGoldTrader-Logo.png";
 
     // ── Generate QR Code ─────────────────────────────────────────────────────
     let qrBase64 = "";
@@ -350,7 +320,7 @@ export class InvoiceService {
         <!-- HEADER -->
         <div class="section header">
             <div class="logo-container">
-                <img class="logo-img" src="data:${logoMimeType};base64,${logoBase64}" alt="Royal Gold Traders Official Logo">
+                <img class="logo-img" src="${logoUrl}" alt="Royal Gold Traders Official Logo">
             </div>
             <div class="header-title">
                 <div class="seller-info">

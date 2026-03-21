@@ -6,19 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
   
-  // ── Clear Database ──────────────────────────────────────────────────────────
-  console.log("🧹 Clearing existing data...");
-  await (prisma as any).auditLog.deleteMany({});
-  await (prisma as any).transaction.deleteMany({});
-  await (prisma as any).withdrawalRequest.deleteMany({});
-  await (prisma as any).goldAdvance.deleteMany({});
-  await (prisma as any).wallet.deleteMany({});
-  await (prisma as any).dailyProfitLog.deleteMany({});
-  await (prisma as any).staffCommission.deleteMany({});
-  await (prisma as any).featureFlag.deleteMany({});
-  await (prisma as any).user.deleteMany({});
-  await (prisma as any).systemSetting.deleteMany({});
-
+  // ── Seeding Configuration ──────────────────────────────────────────────────
   const passwordHash = await bcrypt.hash("adRGT@2026", 10);
 
   // ── Super Admin ─────────────────────────────────────────────────────────────
