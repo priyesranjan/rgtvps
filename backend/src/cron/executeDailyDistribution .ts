@@ -45,8 +45,7 @@ export const executeDailyDistribution = async () => {
                         status: "PROCESSING"
                     },
                     update: {
-                        status: "PROCESSING",
-                        updatedAt: new Date()
+                        status: "PROCESSING"
                     }
                 });
 

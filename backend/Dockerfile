@@ -9,10 +9,10 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* yarn.lock* ./
+COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm install --include=dev
+# Use npm ci for deterministic installs
+RUN npm ci
 
 # Copy Prisma schema and source
 COPY prisma ./prisma
