@@ -13,6 +13,7 @@ import { returnRouter } from "./routes/returns";
 import { referralRouter } from "./routes/referrals";
 import { auditRouter } from "./routes/audit";
 import { uploadRouter } from "./routes/upload";
+import { adminCronRouter } from "./routes/adminCron";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { Role } from "@prisma/client";
 import { startDailyReturnCron } from "./cron/dailyProfitCron";
@@ -48,6 +49,7 @@ app.use("/api/daily-returns", returnRouter);
 app.use("/api/referrals", referralRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/upload", uploadRouter);
+app.use("/api/admin/cron", adminCronRouter);
 
 // Serve static files from storage directory
 app.use("/uploads", express.static(path.join(process.cwd(), "storage", "uploads")));

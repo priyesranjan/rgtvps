@@ -37,6 +37,7 @@ const navItems = [
   { id: "settings", name: "Org Settings", icon: Settings },
   { id: "flags", name: "Feature Flags", icon: ToggleRight },
   { id: "audit", name: "Audit logs", icon: History },
+  { id: "cron", name: "Scheduler Logs", icon: Clock },
 ];
 
 /* ─── Toast ─── */
@@ -57,6 +58,7 @@ export default function SuperAdminDashboardPage() {
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [cronLogs, setCronLogs] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [health, setHealth] = useState<any>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function SuperAdminDashboardPage() {
 
     try {
       // Parallel requests
-      const [fRes, hRes, stRes, uRes, aRes, sRes, staffRes] = await Promise.all([
+      const [fRes, hRes, stRes, uRes, aRes, sRes, staffRes, cronRes] = await Promise.all([
         apiClient.get("/feature-flags", token).catch(() => []),
         apiClient.get("/health", token).catch(() => ({ status: "error" })),
         apiClient.get("/settings", token).catch(() => ({})),
@@ -115,6 +117,7 @@ export default function SuperAdminDashboardPage() {
         apiClient.get("/audit", token).catch(() => ({ data: [] })),
         apiClient.get("/admin/stats", token).catch(() => null),
         apiClient.get("/admin/staff/list", token).catch(() => []),
+        apiClient.get("/admin/cron/logs", token).catch(() => []),
       ]);
 
       setFlags(fRes || []);
@@ -131,6 +134,7 @@ export default function SuperAdminDashboardPage() {
       setAuditLogs(aRes.data || []);
       setStats(sRes);
       setAllStaff(staffRes || []);
+      setCronLogs(cronRes || []);
     } catch (err) {
       console.error("Data fetch failed:", err);
     } finally {
@@ -174,6 +178,21 @@ export default function SuperAdminDashboardPage() {
       alert(err.message);
     } finally {
       setIsSettingsSaving(false);
+    }
+  };
+
+  const handleTriggerCron = async () => {
+    if (!confirm("Are you sure you want to trigger the profit distribution manually? This will process all eligible gold advances and may distribute funds.")) return;
+    const token = localStorage.getItem("token");
+    setIsLoading(true);
+    try {
+      const res = await apiClient.post("/admin/cron/trigger", {}, token || "");
+      showToast(`Success: ${res.results.processedUsers} users processed.`);
+      fetchData();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -757,6 +776,94 @@ export default function SuperAdminDashboardPage() {
                           </div>
                         ))
                     )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── CRON / SCHEDULER LOGS ── */}
+              {activeTab === "cron" && (
+                <motion.div key="cron" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                    <div>
+                      <h2 className="text-2xl font-bold flex items-center gap-3">
+                        <Clock className="w-7 h-7 text-gold-500" /> System Cron Orchestration
+                      </h2>
+                      <p className="text-sm text-text-secondary">Monitoring the daily profit distribution engine</p>
+                    </div>
+                    
+                    <button 
+                      onClick={handleTriggerCron}
+                      className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white text-xs font-black rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-red-500/20 active:scale-95"
+                    >
+                      <Zap className="w-4 h-4 fill-current" /> MANUAL RECONCILIATION
+                    </button>
+                  </div>
+
+                  <div className="bg-bg-surface border border-gold-500/10 rounded-2xl overflow-hidden shadow-xl mb-6">
+                    <div className="p-5 border-b border-gold-500/10 bg-bg-app/50 flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-text-secondary flex items-center gap-2">
+                         <History className="w-4 h-4" /> Execution History
+                      </h3>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead className="bg-bg-app text-[10px] text-text-secondary uppercase font-bold border-b border-white/5">
+                          <tr>
+                            <th className="p-4">Distribution Date</th>
+                            <th className="p-4">Status</th>
+                            <th className="p-4">Users Processed</th>
+                            <th className="p-4">Total Distributed</th>
+                            <th className="p-4">Created At</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {cronLogs.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-10 text-center text-text-secondary italic">
+                                No execution logs found. The distribution node is awaiting first run...
+                              </td>
+                            </tr>
+                          ) : (
+                            cronLogs.map((log) => (
+                              <tr key={log.id} className="hover:bg-white/5 transition-colors group">
+                                <td className="p-4 font-mono text-sm font-bold text-gold-500">
+                                  {log.date}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border ${
+                                    log.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'
+                                  }`}>
+                                    {log.status}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-sm font-bold">
+                                  {log.processed} Users
+                                </td>
+                                <td className="p-4 text-sm font-bold text-text-primary">
+                                  {formatCurrency(Number(log.totalDistributed || 0))}
+                                </td>
+                                <td className="p-4 text-xs text-text-secondary">
+                                  {new Date(log.createdAt).toLocaleString()}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="bg-bg-surface border border-gold-500/10 rounded-2xl p-6 relative overflow-hidden group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gold-500/10 flex items-center justify-center border border-gold-500/20">
+                        <Activity className="w-6 h-6 text-gold-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm">Node Status: Operational</h4>
+                        <p className="text-xs text-text-secondary max-w-sm">The scheduler is configured to run at 01:00 AM IST. All investments wait for at least one night cycle before the first payout.</p>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}

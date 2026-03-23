@@ -205,10 +205,13 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                       <input
                         type="tel"
                         value={formData.mobile}
-                        onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                         className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
                       />
                     </div>
+                    <p className="text-[9px] text-text-secondary mt-1 ml-1 uppercase tracking-tighter">Exactly 10 digits required</p>
                   </div>
                 </div>
               </div>
@@ -225,15 +228,17 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                       <input
                         type="text"
                         value={formData.aadhar}
-                        onChange={(e) => setFormData({ ...formData, aadhar: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) })}
                         className="w-full bg-emerald-1000 border border-white/5 rounded-xl py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-blue-500/40 transition-all"
-                        placeholder="XXXX-XXXX-XXXX"
+                        placeholder="12-digit number"
+                        maxLength={12}
                       />
                     </div>
+                    <p className="text-[9px] text-text-secondary mt-1 ml-1 uppercase tracking-tighter">Exactly 12 digits required</p>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 mb-1.5 block">PAN Number</label>
+                    <label className="text-xs font-semibold text-gray-400 mb-1.5 block">PAN Number <span className="text-text-secondary font-normal font-sans">(Optional)</span></label>
                     <div className="relative group">
                       <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-blue-400 transition-colors" />
                       <input

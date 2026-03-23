@@ -11,7 +11,7 @@ import {
   TrendingUp, Eye, Lock, Unlock, Search, RefreshCw, Crown, Wallet, Loader2, UserPlus, History
 } from "lucide-react";
 import RoleGuard from "@/components/auth/RoleGuard";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import { User } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
@@ -23,6 +23,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import UserTransactionHistoryModal from "@/components/dashboard/UserTransactionHistoryModal";
 import AddGoldAdvanceModal from "@/components/dashboard/AddGoldAdvanceModal";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import GlobalSearch from "@/components/dashboard/GlobalSearch";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -342,7 +343,7 @@ export default function AdminDashboardPage() {
     if (isLoading) return; // Wait for initial mount/auth check
     
     loadTabData(activeTab);
-  }, [activeTab, userSubTab, userPage, txPage, wdPage, debouncedUserSearch, userSortBy, userSortOrder, debouncedTxSearch, txSortBy, txSortOrder, txTypeFilter, debouncedWdSearch, wdSortBy, wdSortOrder]);
+  }, [isLoading, activeTab, userSubTab, userPage, txPage, wdPage, debouncedUserSearch, userSortBy, userSortOrder, debouncedTxSearch, txSortBy, txSortOrder, txTypeFilter, debouncedWdSearch, wdSortBy, wdSortOrder]);
 
   // Reset page when switching or searching
   useEffect(() => { setUserPage(1); }, [userSubTab, debouncedUserSearch, userSortBy, userSortOrder]);
@@ -497,6 +498,16 @@ export default function AdminDashboardPage() {
             </button>
             <span className="text-sm text-text-secondary hidden sm:block">Royal Gold Traders — Global HQ</span>
           </div>
+
+          <GlobalSearch 
+            onSelectUser={(u) => {
+              setSelectedUser(u);
+              setIsDetailsModalOpen(true);
+            }}
+            placeholder="Search users, email, mobile or aadhar..."
+            className="flex-1 max-w-lg hidden md:block"
+          />
+
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <button onClick={() => showToast("No new system alerts")} className="relative text-text-secondary hover:text-gold-500 dark:hover:text-gold-400 transition-colors">
@@ -555,10 +566,14 @@ export default function AdminDashboardPage() {
                     { label: "Pending Req", value: stats ? String(stats.pendingWithdrawalsCount || 0) : "...", status: "Requires Approval", color: "text-blue-400", glass: "bg-blue-glass" },
                   ].map(({ label, value, status, color, glass }, i) => (
                     <motion.div key={label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                      className={`${glass} p-6 rounded-2xl transition-all hover:scale-[1.03] active:scale-95 cursor-default`}>
-                      <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">{label}</p>
-                      <h3 className={`text-2xl font-heading font-black text-text-primary mb-3 tracking-tight ${color.includes('gold') || color.includes('orange') ? 'text-glow-gold' : color.includes('red') ? 'text-red-500' : 'text-glow-blue'}`}>{value}</h3>
-                      <div className={`text-[10px] font-bold ${color} flex items-center gap-1.5 uppercase tracking-tighter`}>
+                      className={`${glass} p-5 rounded-2xl transition-all hover:scale-[1.03] active:scale-95 cursor-default flex flex-col justify-between min-h-[140px] border border-white/5`}>
+                      <div>
+                        <p className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-2">{label}</p>
+                        <h3 className={`text-xl sm:text-2xl font-heading font-black text-text-primary truncate mb-3 tracking-tight ${color.includes('gold') || color.includes('orange') ? 'text-glow-gold' : color.includes('red') ? 'text-red-500' : 'text-glow-blue'}`} title={value}>
+                          {value}
+                        </h3>
+                      </div>
+                      <div className={`text-[10px] font-bold ${color} flex items-center gap-1.5 uppercase tracking-tighter mt-auto`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} shadow-[0_0_8px_rgba(0,0,0,0.5)]`} /> {status}
                       </div>
                     </motion.div>
@@ -587,19 +602,19 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="space-y-4">
                       {stats?.topCustomers?.map((c: any, i: number) => (
-                        <div key={c.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-gold-500/10 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gold-500/10 flex items-center justify-center text-gold-600 dark:text-gold-400 text-xs font-bold">
+                        <div key={c.id} className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-gold-500/20 hover:bg-white/[0.08] transition-all gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-gold-500/10 flex items-center justify-center text-gold-400 text-[10px] font-black border border-gold-500/20 shrink-0">
                               {i + 1}
                             </div>
-                            <div>
-                              <p className="text-sm text-text-primary font-medium">{c.name}</p>
-                              <p className="text-[10px] text-text-secondary">{c.email}</p>
+                            <div className="min-w-0">
+                              <p className="text-sm text-text-primary font-bold truncate leading-tight">{c.name}</p>
+                              <p className="text-[10px] text-text-secondary truncate font-mono">{c.email}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-gold-600 dark:text-gold-400">{formatCurrency(c.goldAdvance)}</p>
-                            <p className="text-[10px] text-text-secondary uppercase tracking-tighter font-bold">Gold Advance</p>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-black text-gold-400 tracking-tight">{formatCurrency(c.goldAdvance)}</p>
+                            <p className="text-[9px] text-text-secondary uppercase tracking-widest font-bold">Advance</p>
                           </div>
                         </div>
                       ))}
@@ -619,19 +634,19 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="space-y-4">
                       {stats?.topReferrers?.map((r: any, i: number) => (
-                        <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-gold-500/10 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 dark:text-blue-400 text-xs font-bold">
+                        <div key={r.id} className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-gold-500/20 hover:bg-white/[0.08] transition-all gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 text-[10px] font-black border border-blue-500/20 shrink-0">
                               {i + 1}
                             </div>
-                            <div>
-                              <p className="text-sm text-text-primary font-medium">{r.name}</p>
-                              <p className="text-[10px] text-text-secondary">{r.refereeCount} Network users</p>
+                            <div className="min-w-0">
+                              <p className="text-sm text-text-primary font-bold truncate leading-tight">{r.name}</p>
+                              <p className="text-[10px] text-text-secondary truncate">{r.refereeCount} Network users</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-gold-600 dark:text-gold-400">{formatCurrency(r.totalNetworkAUM)}</p>
-                            <p className="text-[10px] text-text-secondary uppercase tracking-tighter font-bold">Network AUM</p>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-black text-blue-400 tracking-tight">{formatCurrency(r.totalNetworkAUM)}</p>
+                            <p className="text-[9px] text-text-secondary uppercase tracking-widest font-bold">Net AUM</p>
                           </div>
                         </div>
                       ))}
@@ -652,19 +667,25 @@ export default function AdminDashboardPage() {
 
                     <div className="space-y-4">
                       {leaderboard.map((s: any, i: number) => (
-                        <div key={s.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-gold-500/10 transition-all">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ${i === 0 ? "bg-gold-500/10 border-gold-500 text-gold-500 shadow-[0_0_15px_rgba(255,215,0,0.2)]" : i === 1 ? "bg-gray-400/10 border-gray-400 text-gray-400" : i === 2 ? "bg-orange-600/10 border-orange-600 text-orange-600" : "bg-bg-surface border-gold-500/20 text-text-secondary"}`}>
+                        <div key={s.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-gold-500/20 hover:bg-white/[0.08] transition-all gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center text-sm font-black border-2 shrink-0 transition-transform group-hover:scale-110",
+                              i === 0 ? "bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_15px_rgba(255,215,0,0.2)]" : 
+                              i === 1 ? "bg-gray-400/10 border-gray-400 text-gray-300" : 
+                              i === 2 ? "bg-orange-600/10 border-orange-600 text-orange-400" : 
+                              "bg-bg-surface border-white/10 text-text-secondary"
+                            )}>
                               {i + 1}
                             </div>
-                            <div>
-                              <p className="text-sm font-bold text-text-primary">{s.name}</p>
-                              <p className="text-[10px] text-text-secondary">{s.customersCount} active customers</p>
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-text-primary truncate">{s.name}</p>
+                              <p className="text-[10px] text-text-secondary uppercase tracking-widest">{s.customersCount} Customers</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-green-500 dark:text-emerald-200">{formatCurrency(s.totalCommission)}</p>
-                            <p className="text-[10px] text-text-secondary uppercase font-bold tracking-widest">Commission</p>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-black text-green-400 tracking-tight">{formatCurrency(s.totalCommission)}</p>
+                            <p className="text-[9px] text-text-secondary uppercase font-bold tracking-widest">Earnings</p>
                           </div>
                         </div>
                       ))}

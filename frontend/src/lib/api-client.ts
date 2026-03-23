@@ -1,11 +1,11 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace(/\/$/, "");
 
 async function handleResponse(res: Response, endpoint: string, method: string) {
   if (!res.ok) {
     let errorMessage = "Request failed";
     try {
       const error = await res.json();
-      errorMessage = error.error || errorMessage;
+      errorMessage = error.error || error.message || errorMessage;
     } catch (e) {
       errorMessage = res.statusText || errorMessage;
     }
@@ -18,12 +18,21 @@ async function handleResponse(res: Response, endpoint: string, method: string) {
     console.error(`[API ERROR] ${method} ${endpoint}:`, errorMessage);
     throw new Error(String(errorMessage));
   }
-  return res.json();
+  
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch (e) {
+    console.error(`[API PARSE ERROR] ${method} ${endpoint}:`, text);
+    throw new Error("Invalid server response (not JSON)");
+  }
 }
 
 export const apiClient = {
   get: async (endpoint: string, token?: string) => {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
+      method: "GET",
       headers: {
         "Authorization": token ? `Bearer ${token}` : "",
         "Content-Type": "application/json"
@@ -33,7 +42,8 @@ export const apiClient = {
   },
 
   post: async (endpoint: string, body: any, token?: string) => {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Authorization": token ? `Bearer ${token}` : "",
@@ -45,7 +55,8 @@ export const apiClient = {
   },
 
   put: async (endpoint: string, body: any, token?: string) => {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
       method: "PUT",
       headers: {
         "Authorization": token ? `Bearer ${token}` : "",
@@ -57,7 +68,8 @@ export const apiClient = {
   },
 
   patch: async (endpoint: string, body: any, token?: string) => {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
       method: "PATCH",
       headers: {
         "Authorization": token ? `Bearer ${token}` : "",
@@ -69,7 +81,8 @@ export const apiClient = {
   },
 
   delete: async (endpoint: string, token?: string) => {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
+    const res = await fetch(url, {
       method: "DELETE",
       headers: {
         "Authorization": token ? `Bearer ${token}` : "",

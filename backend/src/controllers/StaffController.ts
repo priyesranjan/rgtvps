@@ -193,19 +193,20 @@ export class StaffController {
     if (!staffId) return res.status(401).json({ error: "Unauthorized" });
 
     try {
+      // Validation: Mobile (10 digits)
+      if (contactNo && !/^\d{10}$/.test(contactNo)) {
+        return res.status(400).json({ error: "Mobile number must be exactly 10 digits" });
+      }
+      // Validation: Aadhar (12 digits)
+      if (aadharNo && !/^\d{12}$/.test(aadharNo)) {
+        return res.status(400).json({ error: "Aadhar number must be exactly 12 digits" });
+      }
+
       // 1. Verify existence and ownership
       const existingUser = await prisma.user.findFirst({
         where: { id: userId, staffId, role: "CUSTOMER" }
       });
       if (!existingUser) return res.status(403).json({ error: "Access denied. Customer not assigned to you." });
-
-      // 2. Check contactNo uniqueness
-      if (contactNo) {
-        const duplicate = await prisma.user.findFirst({
-          where: { contactNo, NOT: { id: userId } }
-        });
-        if (duplicate) return res.status(400).json({ error: "Contact number already in use" });
-      }
 
       const user = await prisma.user.update({
         where: { id: userId },

@@ -27,6 +27,15 @@ export class AdminController {
     } = req.body;
 
     try {
+      // Validation: Mobile (10 digits)
+      if (contactNo && !/^\d{10}$/.test(contactNo)) {
+        return res.status(400).json({ error: "Mobile number must be exactly 10 digits" });
+      }
+      // Validation: Aadhar (12 digits)
+      if (aadharNo && !/^\d{12}$/.test(aadharNo)) {
+        return res.status(400).json({ error: "Aadhar number must be exactly 12 digits" });
+      }
+
       // Check if user already exists
       const existingUser = await prisma.user.findFirst({
         where: { OR: [{ email }, { contactNo }] }
@@ -40,35 +49,90 @@ export class AdminController {
 
       const hashedPassword = await (require("bcryptjs")).hash(password || "password123", 10);
 
-      const user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          role: role as any,
-          contactNo,
-          mobile: contactNo,
-          aadharNo,
-          pan: pan ? pan.toUpperCase() : null,
-          address,
-          photo,
-          gender,
-          dob: dob ? new Date(dob) : null,
-          initialGoldAdvanceAmount: initialGoldAdvanceAmount ? Number(initialGoldAdvanceAmount) : 0,
-          referredBy: referredBy === "" ? null : referredBy,
-          staffId: staffId === "" ? null : staffId,
-          wallet: {
-            create: {
-              goldAdvanceAmount: 0,
-              profitAmount: 0,
-              referralAmount: 0,
-              totalWithdrawable: 0
+      const user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            name,
+            email,
+            password: hashedPassword,
+            role: role as any,
+            contactNo,
+            mobile: contactNo,
+            aadharNo,
+            pan: pan ? pan.toUpperCase() : null,
+            address,
+            photo,
+            gender,
+            dob: dob ? new Date(dob) : null,
+            initialGoldAdvanceAmount: initialGoldAdvanceAmount ? Number(initialGoldAdvanceAmount) : 0,
+            referredBy: referredBy === "" ? null : referredBy,
+            staffId: staffId === "" ? null : staffId,
+            wallet: {
+              create: {
+                goldAdvanceAmount: 0,
+                profitAmount: 0,
+                referralAmount: 0,
+                totalWithdrawable: 0
+              }
             }
           }
+        });
+
+        // If there's an initial amount, credit it immediately
+        const initialAmt = initialGoldAdvanceAmount ? Number(initialGoldAdvanceAmount) : 0;
+        if (initialAmt > 0) {
+          // 1. Create GoldAdvance Record
+          const goldAdvance = await tx.goldAdvance.create({
+            data: {
+              userId: newUser.id,
+              advanceAmount: initialAmt,
+              status: "ACTIVE",
+              description: "Initial Deposit (Auto-recorded)",
+              createdAt: newUser.createdAt,
+              startDate: newUser.createdAt
+            }
+          });
+
+          // 2. Update Wallet
+          await tx.wallet.update({
+            where: { userId: newUser.id },
+            data: { goldAdvanceAmount: { increment: initialAmt } }
+          });
+
+          // 3. Create Transaction Record
+          const paddedNo = `RGT-${String(goldAdvance.invoiceNo).padStart(6, '0')}`;
+          await tx.transaction.create({
+            data: {
+              userId: newUser.id,
+              entityId: goldAdvance.id,
+              performedById: req.user?.id,
+              type: "DEPOSIT",
+              amount: initialAmt,
+              description: `Initial Deposit recorded. Ref: #${paddedNo}`,
+              balanceAfter: 0, // Deposit to Advance doesn't affect withdrawable balance
+              createdAt: newUser.createdAt
+            }
+          });
+
+          // 4. Log Audit for Deposit
+          await tx.auditLog.create({
+            data: {
+              actionType: "GOLD_ADVANCE_DEPOSITED",
+              entityType: "GoldAdvance",
+              entityId: goldAdvance.id,
+              performedByUserId: req.user?.id,
+              performedByRole: req.user?.role,
+              newData: goldAdvance as any,
+              description: `Initial gold advance of ${initialAmt} auto-recorded for user ${newUser.id}`,
+              createdAt: newUser.createdAt
+            }
+          });
         }
+
+        return newUser;
       });
 
-      // Log Audit
+      // Log Audit for User Creation
       await AuditService.logAction({
         actionType: AuditAction.CUSTOMER_CREATED,
         entityType: "User",
@@ -76,7 +140,7 @@ export class AdminController {
         performedByUserId: req.user?.id,
         performedByRole: req.user?.role,
         newData: { id: user.id, email: user.email, role: user.role },
-        description: `User ${user.id} created by Super Admin ${req.user?.id}`,
+        description: `User ${user.id} created by ${req.user?.role} ${req.user?.id}`,
         ipAddress: req.ip
       });
 
@@ -105,6 +169,8 @@ export class AdminController {
           { email: { contains: search } },
           { mobile: { contains: search } },
           { contactNo: { contains: search } },
+          { aadharNo: { contains: search } },
+          { pan: { contains: search } },
           { id: { contains: search } }
         ];
       }
@@ -469,15 +535,16 @@ export class AdminController {
     const { name, email, password, contactNo, aadharNo, pan, role, staffId, referredBy, address, photo, gender, dob } = req.body;
 
     try {
-      const existingUser = await prisma.user.findUnique({ where: { id: userId } });
-
-      // Check for uniqueness
-      if (contactNo) {
-        const existing: any = await (prisma.user as any).findFirst({
-          where: { contactNo, NOT: { id: userId } }
-        });
-        if (existing) return res.status(400).json({ error: "Contact number already in use" });
+      // Validation: Mobile (10 digits)
+      if (contactNo && !/^\d{10}$/.test(contactNo)) {
+        return res.status(400).json({ error: "Mobile number must be exactly 10 digits" });
       }
+      // Validation: Aadhar (12 digits)
+      if (aadharNo && !/^\d{12}$/.test(aadharNo)) {
+        return res.status(400).json({ error: "Aadhar number must be exactly 12 digits" });
+      }
+
+      const existingUser = await prisma.user.findUnique({ where: { id: userId } });
 
       const updateData: any = {
         where: { id: userId },

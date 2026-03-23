@@ -13,6 +13,11 @@ export class ProfileController {
     const { name, contactNo, photo, address, gender, dob } = req.body;
 
     try {
+      // Validation: Mobile (10 digits)
+      if (contactNo && !/^\d{10}$/.test(contactNo)) {
+        return res.status(400).json({ error: "Mobile number must be exactly 10 digits" });
+      }
+
       const existingUser = await prisma.user.findUnique({
         where: { id: userId }
       });

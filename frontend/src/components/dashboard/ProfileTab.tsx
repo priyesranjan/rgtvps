@@ -16,6 +16,8 @@ export default function ProfileTab({ user, onUpdateSuccess }: ProfileTabProps) {
     name: user?.name || "",
     email: user?.email || "",
     contactNo: user?.contactNo || "",
+    aadharNo: user?.aadharNo || "",
+    pan: user?.pan || "",
     photo: user?.photo || "",
     address: user?.address || "",
     gender: user?.gender || "",
@@ -194,9 +196,43 @@ export default function ProfileTab({ user, onUpdateSuccess }: ProfileTabProps) {
                     type="tel"
                     name="contactNo"
                     value={formData.contactNo}
-                    onChange={handleChange}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contactNo: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all font-medium"
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                  />
+                </div>
+                <p className="text-[9px] text-text-secondary mt-1 ml-1 uppercase tracking-tighter">Exactly 10 digits required</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Aadhar Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
+                  <input
+                    type="text"
+                    name="aadharNo"
+                    value={formData.aadharNo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, aadharNo: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
                     className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all"
-                    placeholder="Enter mobile number"
+                    placeholder="12-digit number"
+                    maxLength={12}
+                  />
+                </div>
+                <p className="text-[9px] text-text-secondary mt-1 ml-1 uppercase tracking-tighter">Exactly 12 digits required</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">PAN Number <span className="text-text-secondary font-normal font-sans">(Optional)</span></label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
+                  <input
+                    type="text"
+                    name="pan"
+                    value={formData.pan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase() }))}
+                    className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 pl-11 pr-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all uppercase"
+                    placeholder="ABCDE1234F"
                   />
                 </div>
               </div>

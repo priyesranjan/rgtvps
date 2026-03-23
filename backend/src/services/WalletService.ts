@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export class WalletService {
   /**
@@ -21,18 +22,19 @@ export class WalletService {
    * Update wallet balances and recalculate totalWithdrawable
    */
   static async updateBalance(userId: string, data: {
-    goldAdvanceAmount?: number;
-    profitAmount?: number;
-    referralAmount?: number;
-    referralBalance?: number;
-    staffCommissionBalance?: number;
+    goldAdvanceAmount?: number | Prisma.Decimal;
+    profitAmount?: number | Prisma.Decimal;
+    referralAmount?: number | Prisma.Decimal;
+    referralBalance?: number | Prisma.Decimal;
+    staffCommissionBalance?: number | Prisma.Decimal;
   }, tx?: any) {
     const client = tx || prisma;
     
     // Ensure wallet exists
     await this.getOrCreateWallet(userId, client);
 
-    // Perform update with increment and then recalculate total
+    // Perform update with increment. 
+    // Prisma increment works with Decimal.
     const updated = await client.wallet.update({
       where: { userId },
       data: {
@@ -44,12 +46,12 @@ export class WalletService {
       }
     });
 
-    // Sync totalWithdrawable: goldAdvanceAmount + profitAmount + referralAmount + referralBalance + staffCommissionBalance
-    const total = Number(updated.goldAdvanceAmount) + 
-                  Number(updated.profitAmount) + 
-                  Number(updated.referralAmount) + 
-                  Number(updated.referralBalance) + 
-                  Number(updated.staffCommissionBalance);
+    // Precise Sync of totalWithdrawable: sum of all individual balances
+    const total = new Prisma.Decimal(updated.goldAdvanceAmount)
+                    .plus(updated.profitAmount)
+                    .plus(updated.referralAmount)
+                    .plus(updated.referralBalance)
+                    .plus(updated.staffCommissionBalance);
     
     return await client.wallet.update({
       where: { userId },

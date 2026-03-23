@@ -1,159 +1,220 @@
 import { prisma } from "../lib/prisma";
-import { TransactionType, GoldAdvanceStatus, AuditAction } from "@prisma/client";
+import { TransactionType, GoldAdvanceStatus, AuditAction, Prisma } from "@prisma/client";
 import { WalletService } from "./WalletService";
 import { AuditService } from "./AuditService";
+import { DateTime } from "luxon";
 
 export class ProfitDistributionService {
   /**
-   * Distribute daily returns for all active gold advances
+   * Distribute daily returns for all active gold advances, aggregated by user.
+   * Optimized for scale with batch queries and concurrency.
+   * @param cutoffDate The date/time up to which profit should be calculated (exclusive).
+   * @param businessDate The date string for which the profit is being distributed (e.g., "2026-03-22").
    */
-  static async distributeDailyReturns() {
+  static async distributeDailyReturns(cutoffDate: Date, businessDate: string) {
+    const startTime = Date.now();
+    
+    // We process up to the cutoff (end of yesterday IST)
+    const startOfToday = DateTime.fromJSDate(cutoffDate).setZone("Asia/Kolkata").startOf("day");
+    const endOfToday = startOfToday.endOf("day");
+
+    console.log(`⏰ [Cron] Starting distribution for Business Date: ${businessDate} (Cutoff: ${cutoffDate.toISOString()})...`);
+
+    // 1. "Till Yesterday" Filter: Fetch only active advances created BEFORE today
     const activeAdvances = await prisma.goldAdvance.findMany({
-      where: { status: GoldAdvanceStatus.ACTIVE },
+      where: {
+        status: GoldAdvanceStatus.ACTIVE,
+        createdAt: { lt: cutoffDate }
+      },
       include: {
         user: {
           select: {
             id: true,
             referredBy: true,
             staffId: true,
-            name: true
+            name: true,
           }
         }
       }
     });
 
-    // Fetch Global Settings for Rates
-    const settings = await prisma.systemSetting.findUnique({ where: { id: "default" } });
-    const profitMonthlyRate = Number(settings?.monthlyProfitPercentage || 5.0) / 100;
-    const referralMonthlyRate = Number(settings?.monthlyReferralPercentage || 5.0) / 100;
-    const staffMonthlyRate = Number(settings?.monthlyStaffPercentage || 5.0) / 100;
-
-    const results = {
-      processed: 0,
-      totalDistributed: 0,
-      totalReferral: 0,
-      totalStaff: 0
-    };
-
-    const today = new Date();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-
-    for (const advance of activeAdvances) {
-      try {
-        // Check if this specific advance already got profit today
-        const existingTx = await prisma.transaction.findFirst({
-          where: {
-            userId: advance.userId,
-            type: TransactionType.PROFIT,
-            description: { contains: `Gold Advance #${advance.id}` },
-            createdAt: {
-              gte: startOfToday,
-              lte: endOfToday
-            }
-          }
-        });
-
-        if (existingTx) continue;
-
-        await prisma.$transaction(async (tx) => {
-          const advanceAmount = Number(advance.advanceAmount);
-          
-          // Monthly rate logic: (advanceAmount * Rate) / 30 days
-          const dailyProfit = Number(((advanceAmount * profitMonthlyRate) / 30).toFixed(2));
-          const referralReward = Number(((advanceAmount * referralMonthlyRate) / 30).toFixed(2));
-          const staffCommission = Number(((advanceAmount * staffMonthlyRate) / 30).toFixed(2));
-          
-          if (dailyProfit <= 0) return;
-
-          // 1. Credit Customer Profit
-          await WalletService.updateBalance(advance.userId, { profitAmount: dailyProfit }, tx);
-          
-          await tx.transaction.create({
-            data: {
-              userId: advance.userId,
-              type: TransactionType.PROFIT,
-              amount: dailyProfit,
-              description: `Daily profit on Gold Advance #${advance.id}`,
-            }
-          });
-
-          // 2. Credit Referrer (if exists)
-          if (advance.user.referredBy && referralReward > 0) {
-            await WalletService.updateBalance(advance.user.referredBy, { referralAmount: referralReward }, tx);
-            
-            await tx.transaction.create({
-              data: {
-                userId: advance.user.referredBy,
-                type: TransactionType.REFERRAL,
-                amount: referralReward,
-                description: `Referral reward from customer ${advance.user.name} (Advance #${advance.id})`,
-              }
-            });
-            results.totalReferral += referralReward;
-          }
-
-          // 3. Credit Staff (if exists)
-          if (advance.user.staffId && staffCommission > 0) {
-            await tx.staffCommission.create({
-              data: {
-                staffId: advance.user.staffId,
-                customerId: advance.userId,
-                amount: staffCommission
-              }
-            });
-
-            // Credit to staffCommissionBalance specifically
-            await WalletService.updateBalance(advance.user.staffId, { staffCommissionBalance: staffCommission }, tx);
-            
-            await tx.transaction.create({
-              data: {
-                userId: advance.user.staffId,
-                type: TransactionType.STAFF_COMMISSION,
-                amount: staffCommission,
-                description: `Commission from customer ${advance.user.name} (Advance #${advance.id})`,
-              }
-            });
-            results.totalStaff += staffCommission;
-          }
-
-          results.processed++;
-          results.totalDistributed += dailyProfit;
-        });
-      } catch (err) {
-        console.error(`Failed to process profit for advance ${advance.id}:`, err);
-      }
+    if (activeAdvances.length === 0) {
+      console.log("ℹ️ [Cron] No eligible gold advances found (created before today).");
+      return { processedUsers: 0, processedAdvances: 0 };
     }
 
-    const dateStr = today.toISOString().split("T")[0];
-    
-    // Log in DailyProfitLog for visibility
-    await prisma.dailyProfitLog.upsert({
-      where: { date: dateStr },
-      create: {
-        date: dateStr,
-        status: "SUCCESS",
-        processed: results.processed
+    // 2. Batch Idempotency Check: Fetch all users who already got profit TODAY
+    const processedUserIds = await prisma.transaction.findMany({
+      where: {
+        type: TransactionType.PROFIT,
+        createdAt: { 
+          gte: startOfToday.toJSDate(), 
+          lte: endOfToday.toJSDate() 
+        }
       },
-      update: {
-        status: "SUCCESS",
-        processed: { increment: results.processed }
-      }
-    });
+      select: { userId: true }
+    }).then(txs => new Set((txs as any[]).map(t => t.userId)));
 
-    // Final Audit Log for the record
-    if (results.processed > 0) {
+    // 3. Group by userId and filter out already processed users
+    const userAdvancesMap = new Map<string, typeof activeAdvances>();
+    for (const advance of activeAdvances) {
+      if (processedUserIds.has(advance.userId)) continue;
+
+      if (!userAdvancesMap.has(advance.userId)) {
+        userAdvancesMap.set(advance.userId, []);
+      }
+      userAdvancesMap.get(advance.userId)!.push(advance);
+    }
+
+    if (userAdvancesMap.size === 0) {
+      console.log("ℹ️ [Cron] All eligible users have already been processed for today.");
+      return { processedUsers: 0, processedAdvances: 0 };
+    }
+
+    // 4. Fetch Global Settings for Rates
+    const settings = await prisma.systemSetting.findUnique({ where: { id: "default" } });
+    const profitMonthlyRate = (settings?.monthlyProfitPercentage || 5.0).toString();
+    const referralMonthlyRate = (settings?.monthlyReferralPercentage || 5.0).toString();
+    const staffMonthlyRate = (settings?.monthlyStaffPercentage || 5.0).toString();
+
+    const results = {
+      processedUsers: 0,
+      processedAdvances: 0,
+      totalDistributed: new Prisma.Decimal(0),
+      totalReferral: new Prisma.Decimal(0),
+      totalStaff: new Prisma.Decimal(0)
+    };
+
+    console.log(`⏰ [Cron] Processing ${userAdvancesMap.size} new users...`);
+
+    // 5. Concurrent Processing: Process users in batches
+    const userIds = Array.from(userAdvancesMap.keys());
+    const CONCURRENCY_LIMIT = 10;
+
+    for (let i = 0; i < userIds.length; i += CONCURRENCY_LIMIT) {
+      const batch = userIds.slice(i, i + CONCURRENCY_LIMIT);
+
+      await Promise.all(batch.map(async (userId) => {
+        const advances = userAdvancesMap.get(userId)!;
+        try {
+          await prisma.$transaction(async (tx) => {
+            const user = advances[0].user;
+            const totalAdvanceAmount = advances.reduce((sum, adv) => sum.plus(adv.advanceAmount.toString()), new Prisma.Decimal(0));
+
+            // Precise Arithmetic with Decimal
+            // dailyProfit = (Total * MonthlyRate / 100) / 30
+            const dailyProfit = totalAdvanceAmount
+              .mul(profitMonthlyRate)
+              .div(100)
+              .div(30)
+              .toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN);
+
+            const referralReward = totalAdvanceAmount
+              .mul(referralMonthlyRate)
+              .div(100)
+              .div(30)
+              .toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN);
+
+            const staffCommission = totalAdvanceAmount
+              .mul(staffMonthlyRate)
+              .div(100)
+              .div(30)
+              .toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN);
+
+            if (dailyProfit.lte(0)) return;
+
+            // 1. Credit Customer Profit
+            await WalletService.updateBalance(userId, { profitAmount: dailyProfit }, tx);
+
+            await tx.transaction.create({
+              data: {
+                userId: userId,
+                type: TransactionType.PROFIT,
+                amount: dailyProfit,
+                description: `Daily profit on Total Gold Advances (${advances.length} active invoices)`,
+              }
+            });
+
+            // 2. Credit Referrer (if exists)
+            if (user.referredBy && referralReward.gt(0)) {
+              await WalletService.updateBalance(user.referredBy, { referralAmount: referralReward }, tx);
+              await tx.transaction.create({
+                data: {
+                  userId: user.referredBy,
+                  type: TransactionType.REFERRAL,
+                  amount: referralReward,
+                  description: `Referral reward from customer ${user.name} (Aggregated Profile)`,
+                }
+              });
+              results.totalReferral = results.totalReferral.plus(referralReward);
+            }
+
+            // 3. Credit Staff (if exists)
+            if (user.staffId && staffCommission.gt(0)) {
+              await tx.staffCommission.create({
+                data: {
+                  staffId: user.staffId,
+                  customerId: userId,
+                  amount: staffCommission
+                }
+              });
+
+              await WalletService.updateBalance(user.staffId, { staffCommissionBalance: staffCommission }, tx);
+
+              await tx.transaction.create({
+                data: {
+                  userId: user.staffId,
+                  type: TransactionType.STAFF_COMMISSION,
+                  amount: staffCommission,
+                  description: `Commission from customer ${user.name} (Aggregated Profile)`,
+                }
+              });
+              results.totalStaff = results.totalStaff.plus(staffCommission);
+            }
+
+            results.processedUsers++;
+            results.processedAdvances += advances.length;
+            results.totalDistributed = results.totalDistributed.plus(dailyProfit);
+          });
+        } catch (err: any) {
+          console.error(`❌ [Cron] Failed for user ${userId}:`, err.message);
+        }
+      }));
+    }
+
+
+
+    // 7. Final Audit Log
+    if (results.processedUsers > 0) {
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       await AuditService.logAction({
         actionType: AuditAction.PROFIT_DISTRIBUTED,
         entityType: "System",
-        entityId: dateStr,
-        description: `Daily profit distribution run completed for ${results.processed} advances.`,
-        newData: results,
+        entityId: businessDate,
+        description: `Daily profit distribution completed in ${duration}s for ${results.processedUsers} users.`,
+        newData: { 
+          processedUsers: results.processedUsers,
+          processedAdvances: results.processedAdvances,
+          totalDistributed: results.totalDistributed.toString(),
+          totalReferral: results.totalReferral.toString(),
+          totalStaff: results.totalStaff.toString(),
+          durationSeconds: duration 
+        },
         performedByRole: "ADMIN",
         performedByUserId: "SYSTEM"
       });
+      console.log(`✅ [Cron] Distribution completed in ${duration}s:`, {
+        ...results,
+        totalDistributed: results.totalDistributed.toString()
+      });
     }
 
-    return results;
+    return {
+      processedUsers: results.processedUsers,
+      processedAdvances: results.processedAdvances,
+      totalDistributed: results.totalDistributed,
+      totalReferral: results.totalReferral,
+      totalStaff: results.totalStaff
+    };
   }
 }

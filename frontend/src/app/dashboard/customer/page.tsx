@@ -584,12 +584,18 @@ export default function CustomerDashboardPage() {
                       { icon: ArrowDownRight, color: "text-purple-400", label: "Referral Earnings", value: formatCurrency(userData?.referralBalance || 0), sub: "Total Rewards", subColor: "text-purple-400", glassClass: "bg-blue-glass" },
                     ].map(({ icon: Icon, color, label, value, sub, subColor, glassClass }, i) => (
                       <motion.div key={label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-                        className={`${glassClass} p-5 rounded-2xl relative overflow-hidden group transition-all hover:scale-[1.02]`}>
+                        className={`${glassClass} p-5 rounded-2xl relative overflow-hidden group transition-all hover:scale-[1.02] flex flex-col justify-between min-h-[160px] border border-white/5`}>
                         <div className="absolute inset-0 bg-gold-gradient opacity-0 group-hover:opacity-5 transition-opacity" />
-                        <div className={`${color} mb-4`}><Icon className="w-6 h-6" /></div>
-                        <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-1">{label}</p>
-                        <h2 className={`text-2xl font-heading font-black text-text-primary ${glassClass.includes('gold') ? 'text-glow-gold' : 'text-glow-blue'}`}>{value}</h2>
-                        <div className={`mt-4 inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${subColor}`}>{sub}</div>
+                        <div className="relative z-10">
+                          <div className={`${color} mb-3`}><Icon className="w-5 h-5" /></div>
+                          <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.2em] mb-1">{label}</p>
+                          <h2 className={`text-xl sm:text-2xl font-heading font-black text-text-primary truncate mb-1 ${glassClass.includes('gold') ? 'text-glow-gold' : 'text-glow-blue'}`} title={value}>
+                            {value}
+                          </h2>
+                        </div>
+                        <div className={`mt-auto relative z-10 inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-lg w-fit ${subColor} bg-white/5 border border-white/5`}>
+                          {sub}
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -690,9 +696,9 @@ export default function CustomerDashboardPage() {
                       { label: "Withdrawals", value: formatCurrency(transactionsData.filter(tx => tx.type === "WITHDRAWAL").reduce((sum, tx) => sum + Number(tx.amount || 0), 0)), color: "text-red-400", glass: "bg-red-glass" },
                       { label: "Net Balance", value: formatCurrency(mainVaultBalance), color: "text-text-primary", glass: "bg-blue-glass" },
                     ].map(({ label, value, color, glass }) => (
-                      <div key={label} className={`${glass} rounded-2xl p-4 transition-transform hover:scale-105`}>
-                        <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">{label}</p>
-                        <p className={`text-xl font-heading font-black ${color}`}>{value}</p>
+                      <div key={label} className={`${glass} rounded-2xl p-5 border border-white/5 transition-all hover:translate-y-[-2px] flex flex-col justify-between min-h-[100px]`}>
+                        <p className="text-[9px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-1">{label}</p>
+                        <p className={`text-lg sm:text-xl font-heading font-black truncate ${color}`} title={value}>{value}</p>
                       </div>
                     ))}
                   </div>

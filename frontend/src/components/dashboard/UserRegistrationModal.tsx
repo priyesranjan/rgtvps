@@ -260,10 +260,12 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                     type="tel"
                     required
                     value={formData.contactNo}
-                    onChange={(e) => setFormData({ ...formData, contactNo: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, contactNo: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-3 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all font-medium"
-                    placeholder="10-digit mobile"
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
                   />
+                  <p className="text-[9px] text-text-secondary mt-1 ml-1 uppercase tracking-tighter">Exactly 10 digits required</p>
                 </div>
                 {callerRole === "ADMIN" && (
                   <div>
@@ -291,7 +293,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                 >
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">PAN No</label>
+                      <label className="text-[10px] font-bold text-gold-500 uppercase tracking-widest mb-2 block">PAN No <span className="text-text-secondary font-normal font-sans">(Optional)</span></label>
                       <input
                         type="text"
                         value={formData.pan}
@@ -306,10 +308,12 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                       <input
                         type="text"
                         value={formData.aadharNo}
-                        onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value.replace(/\D/g, '').slice(0, 12) })}
                         className="w-full bg-bg-app border border-gold-500/10 rounded-xl py-2.5 px-4 text-text-primary text-sm focus:outline-none focus:border-gold-500/40 transition-all"
-                        placeholder="XXXX-XXXX-XXXX"
+                        placeholder="12-digit number"
+                        maxLength={12}
                       />
+                      <p className="text-[9px] text-text-secondary mt-1 ml-1 uppercase tracking-tighter">Exactly 12 digits required</p>
                     </div>
                   </div>
 

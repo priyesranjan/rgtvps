@@ -48,10 +48,10 @@ export default function DashboardSidebar({
   
   const accentClasses = {
     gold: {
-      text: "text-gold-500",
+      text: "text-gold-400",
       bgSubtle: "bg-gold-500/10",
-      borderSubtle: "border-gold-500/20",
-      hover: "hover:text-gold-600 hover:bg-gold-500/5 dark:hover:text-white dark:hover:bg-white/5",
+      borderSubtle: "border-gold-500/30",
+      hover: "hover:text-gold-300 hover:bg-white/5 dark:hover:text-gold-300 dark:hover:bg-white/5",
       sidebarBorder: "border-gold-500/10"
     },
     blue: {
@@ -118,18 +118,21 @@ export default function DashboardSidebar({
               setIsMobileOpen(false);
             }}
             className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group",
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all group relative overflow-hidden",
               activeTab === item.id
-                ? cn(accentClasses.bgSubtle, accentClasses.text, "border", accentClasses.borderSubtle)
-                : accentClasses.hover + " text-text-secondary"
+                ? "bg-gold-gradient text-bg-app shadow-[0_0_20px_rgba(255,191,0,0.2)]"
+                : "text-text-secondary hover:text-gold-400 hover:bg-white/5"
             )}
           >
-            <item.icon className={cn("w-4 h-4 shrink-0 transition-colors", activeTab === item.id ? accentClasses.text : "group-hover:text-gold-500 dark:group-hover:text-white")} />
-            <span className="truncate">{item.name}</span>
+            {activeTab === item.id && (
+              <motion.div layoutId="sidebar-active" className="absolute inset-0 bg-gold-gradient" />
+            )}
+            <item.icon className={cn("w-4 h-4 shrink-0 transition-colors z-10", activeTab === item.id ? "text-bg-app" : "group-hover:text-gold-400")} />
+            <span className="truncate z-10">{item.name}</span>
             {item.badge !== undefined && (
               <span className={cn(
-                "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0",
-                item.badgeColor || "bg-red-500/20 text-red-300"
+                "ml-auto text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 z-10",
+                item.badgeColor || "bg-red-500 text-white shadow-lg"
               )}>
                 {item.badge}
               </span>
@@ -155,7 +158,7 @@ export default function DashboardSidebar({
     <>
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "w-72 bg-bg-surface/50 border-r hidden lg:flex flex-col sticky top-0 h-screen z-20",
+        "w-72 bg-bg-app/40 backdrop-blur-3xl border-r hidden lg:flex flex-col sticky top-0 h-screen z-20 shadow-2xl shadow-black/50",
         accentClasses.sidebarBorder
       )}>
         <SidebarContent />

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Lock, Mail, KeyRound, ShieldAlert, Zap,
   User, Briefcase, Settings, ShieldCheck, Smartphone,
-  MessageSquare, Loader2, Eye, EyeOff
+  MessageSquare, Loader2, Eye, EyeOff, Instagram, Facebook, Linkedin
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -308,6 +308,22 @@ export default function LoginPage() {
               <span>Military-Grade Encryption (AES-256)</span>
             </div>
           </form>
+
+          {/* Social Links Mini-Section */}
+          <div className="mt-8 pt-6 border-t border-gold-500/10 text-center">
+            <p className="text-[10px] text-text-secondary uppercase tracking-[0.2em] mb-4">Official Channels</p>
+            <div className="flex items-center justify-center gap-6">
+              <a href="#" className="text-text-secondary hover:text-gold-400 transition-colors duration-300">
+                <Instagram size={18} />
+              </a>
+              <a href="#" className="text-text-secondary hover:text-gold-400 transition-colors duration-300">
+                <Facebook size={18} />
+              </a>
+              <a href="#" className="text-text-secondary hover:text-gold-400 transition-colors duration-300">
+                <Linkedin size={18} />
+              </a>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>

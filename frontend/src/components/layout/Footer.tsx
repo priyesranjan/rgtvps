@@ -44,16 +44,16 @@ export default function Footer() {
               <a href="#" className="w-10 h-10 rounded-full bg-bg-surface border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-bg-app hover:border-gold-500 transition-all duration-300">
                 <Facebook size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-bg-surface border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-bg-app hover:border-gold-500 transition-all duration-300">
                 <Instagram size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-bg-surface border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-bg-app hover:border-gold-500 transition-all duration-300">
                 <Youtube size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-bg-surface border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-bg-app hover:border-gold-500 transition-all duration-300">
                 <Twitter size={18} />
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-emerald-900 border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-emerald-1000 hover:border-gold-500 transition-all duration-300">
+              <a href="#" className="w-10 h-10 rounded-full bg-bg-surface border border-gold-500/20 flex items-center justify-center text-gold-400 hover:bg-gold-500 hover:text-bg-app hover:border-gold-500 transition-all duration-300">
                 <Linkedin size={18} />
               </a>
             </div>

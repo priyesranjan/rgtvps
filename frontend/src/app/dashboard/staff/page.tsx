@@ -16,6 +16,7 @@ import UserTransactionHistoryModal from "@/components/dashboard/UserTransactionH
 import RoleGuard from "@/components/auth/RoleGuard";
 import ManualWithdrawalModal from "@/components/dashboard/ManualWithdrawalModal";
 import ProfileTab from "@/components/dashboard/ProfileTab";
+import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import { formatCurrency } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -315,6 +316,16 @@ export default function StaffDashboardPage() {
                 Staff <span className="text-blue-500 dark:text-blue-400">Dashboard</span>
               </h1>
             </div>
+
+            <GlobalSearch 
+              onSelectUser={(u) => {
+                // If it's a customer, we can open the profile modal
+                setSelectedCustomer(u);
+              }}
+              placeholder="Quick search customers..."
+              className="flex-1 max-w-md hidden md:block"
+            />
+
             <div className="flex items-center gap-4">
               <ThemeToggle />
             </div>
