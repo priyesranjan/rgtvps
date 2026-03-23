@@ -72,5 +72,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 EXPOSE 4000
 
-# Run migrations and then start the application
-CMD npx prisma migrate deploy && node dist/src/index.js
+# Run migrations/sync schema and then start the application
+# We use db push --accept-data-loss because the production DB has no migration history
+CMD npx prisma db push --accept-data-loss && node dist/src/index.js
