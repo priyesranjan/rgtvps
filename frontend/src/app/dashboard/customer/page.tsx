@@ -311,7 +311,7 @@ export default function CustomerDashboardPage() {
     if (!token || !userJson) return null;
     const user = JSON.parse(userJson);
     try {
-      const userRes = await apiClient.get(`/users/${user.id}`, token);
+      const userRes = await apiClient.get(`/users/${user.id}`, token || undefined);
       const data = userRes.data || userRes;
       setUserData(data);
       return data;
@@ -329,8 +329,8 @@ export default function CustomerDashboardPage() {
 
     try {
       const [advRes, txRes] = await Promise.all([
-        apiClient.get(`/gold-advances`, token),
-        apiClient.get(`/users/${user.id}/transactions`, token)
+        apiClient.get(`/gold-advances`, token || undefined),
+        apiClient.get(`/users/${user.id}/transactions`, token || undefined)
       ]);
       setGoldAdvances(advRes.data || advRes);
       mapTransactions(txRes.data || txRes);
@@ -343,7 +343,7 @@ export default function CustomerDashboardPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const refRes = await apiClient.get(`/referrals`, token);
+      const refRes = await apiClient.get(`/referrals`, token || undefined);
       setReferrals(refRes.data || refRes);
     } catch (err: any) {
       handleApiError(err);
@@ -354,7 +354,7 @@ export default function CustomerDashboardPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await apiClient.get(`/withdrawals`, token);
+      const res = await apiClient.get(`/withdrawals`, token || undefined);
       setWithdrawalsList(res.data || res);
     } catch (err: any) {
       console.error("Fetch withdrawals failed:", err);

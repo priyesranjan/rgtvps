@@ -110,14 +110,14 @@ export default function SuperAdminDashboardPage() {
     try {
       // Parallel requests
       const [fRes, hRes, stRes, uRes, aRes, sRes, staffRes, cronRes] = await Promise.all([
-        apiClient.get("/feature-flags", token).catch(() => []),
-        apiClient.get("/health", token).catch(() => ({ status: "error" })),
-        apiClient.get("/settings", token).catch(() => ({})),
-        apiClient.get("/admin/users?limit=50", token).catch(() => ({ data: [] })),
-        apiClient.get("/audit", token).catch(() => ({ data: [] })),
-        apiClient.get("/admin/stats", token).catch(() => null),
-        apiClient.get("/admin/staff/list", token).catch(() => []),
-        apiClient.get("/admin/cron/logs", token).catch(() => []),
+        apiClient.get("/feature-flags", token || undefined).catch(() => []),
+        apiClient.get("/health", token || undefined).catch(() => ({ status: "error" })),
+        apiClient.get("/settings", token || undefined).catch(() => ({})),
+        apiClient.get("/admin/users?limit=50", token || undefined).catch(() => ({ data: [] })),
+        apiClient.get("/audit", token || undefined).catch(() => ({ data: [] })),
+        apiClient.get("/admin/stats", token || undefined).catch(() => null),
+        apiClient.get("/admin/staff/list", token || undefined).catch(() => []),
+        apiClient.get("/admin/cron/logs", token || undefined).catch(() => []),
       ]);
 
       setFlags(fRes || []);
@@ -153,7 +153,7 @@ export default function SuperAdminDashboardPage() {
       const updated = await apiClient.put(`/feature-flags/${key}`, { 
         isEnabled: !flag.isEnabled,
         updatedBy: "Super Admin"
-      }, token || "");
+      }, token || undefined);
       setFlags(prev => prev.map(f => f.key === key ? updated : f));
       showToast(`${flag.label} ${updated.isEnabled ? "ENABLED" : "DISABLED"}`);
     } catch (err: any) {
@@ -172,7 +172,7 @@ export default function SuperAdminDashboardPage() {
         monthlyReferralPercentage,
         monthlyStaffPercentage,
         showAdvancedSettings
-      }, token || "");
+      }, token || undefined);
       showToast("System settings updated successfully!");
     } catch (err: any) {
       alert(err.message);
@@ -186,7 +186,7 @@ export default function SuperAdminDashboardPage() {
     const token = localStorage.getItem("token");
     setIsLoading(true);
     try {
-      const res = await apiClient.post("/admin/cron/trigger", {}, token || "");
+      const res = await apiClient.post("/admin/cron/trigger", {}, token || undefined);
       showToast(`Success: ${res.results.processedUsers} users processed.`);
       fetchData();
     } catch (err: any) {
@@ -202,10 +202,10 @@ export default function SuperAdminDashboardPage() {
     setIsUserSaving(true);
     try {
       if (editingUser) {
-        await apiClient.patch(`/admin/users/${editingUser.id}`, userFormData, token || "");
+        await apiClient.patch(`/admin/users/${editingUser.id}`, userFormData, token || undefined);
         showToast("User updated successfully");
       } else {
-        await apiClient.post("/admin/users", userFormData, token || "");
+        await apiClient.post("/admin/users", userFormData, token || undefined);
         showToast("User created successfully");
       }
       setIsUserModalOpen(false);
@@ -221,7 +221,7 @@ export default function SuperAdminDashboardPage() {
     if (!confirm("Are you sure you want to PERMANENTLY delete this user? This action cannot be undone.")) return;
     const token = localStorage.getItem("token");
     try {
-      await apiClient.delete(`/admin/users/${userId}`, token || "");
+      await apiClient.delete(`/admin/users/${userId}`, token || undefined);
       showToast("User deleted");
       fetchData();
     } catch (err: any) {

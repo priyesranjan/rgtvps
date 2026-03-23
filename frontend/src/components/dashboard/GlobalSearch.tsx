@@ -52,7 +52,7 @@ export default function GlobalSearch({ roleFilter, onSelectUser, placeholder = "
       });
       if (roleFilter) searchParams.append("role", roleFilter);
 
-      const res = await apiClient.get(`/admin/users?${searchParams.toString()}`, token);
+      const res = await apiClient.get(`/admin/users?${searchParams.toString()}`, token || undefined);
       setResults(res.data || []);
       setIsOpen(true);
     } catch (err) {

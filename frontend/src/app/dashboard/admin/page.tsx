@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const sRes = await apiClient.get("/admin/stats", token);
+      const sRes = await apiClient.get("/admin/stats", token || undefined);
       setStats(sRes);
     } catch (err) {
       console.error("Fetch stats failed:", err);
@@ -169,7 +169,7 @@ export default function AdminDashboardPage() {
         sortBy: userSortBy,
         sortOrder: userSortOrder
       });
-      const res = await apiClient.get(`/admin/users?${query.toString()}`, token);
+      const res = await apiClient.get(`/admin/users?${query.toString()}`, token || undefined);
       setUsers(res.data || []);
       setUserTotalPages(res.meta?.totalPages || 1);
     } catch (err) {
@@ -191,7 +191,7 @@ export default function AdminDashboardPage() {
       if (txTypeFilter !== "ALL") {
         query.append("type", txTypeFilter);
       }
-      const res = await apiClient.get(`/admin/transactions?${query.toString()}`, token);
+      const res = await apiClient.get(`/admin/transactions?${query.toString()}`, token || undefined);
       setGlobalTransactions(res.data || []);
       setTxTotalPages(res.meta?.totalPages || 1);
     } catch (err) {
@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
         sortBy: wdSortBy,
         sortOrder: wdSortOrder
       });
-      const res = await apiClient.get(`/withdrawals/admin/all?${query.toString()}`, token);
+      const res = await apiClient.get(`/withdrawals/admin/all?${query.toString()}`, token || undefined);
       setWithdrawals(res.data || []);
       setWdTotalPages(res.meta?.totalPages || 1);
     } catch (err) {
@@ -222,7 +222,7 @@ export default function AdminDashboardPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await apiClient.get("/settings", token);
+      const res = await apiClient.get("/settings", token || undefined);
       setShowGST(res.showGST);
       setGstPercentage(Number(res.gstPercentage));
       setMonthlyProfitPercentage(Number(res.monthlyProfitPercentage || 5.0));
@@ -251,7 +251,7 @@ export default function AdminDashboardPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await apiClient.get("/admin/staff/list", token);
+      const res = await apiClient.get("/admin/staff/list", token || undefined);
       setAllStaff(res || []);
     } catch (err) {
       console.error("Fetch staff failed:", err);
@@ -287,7 +287,7 @@ export default function AdminDashboardPage() {
         monthlyReferralPercentage,
         monthlyStaffPercentage,
         showAdvancedSettings
-      }, token);
+      }, token || undefined);
       showToast("System settings updated successfully!");
     } catch (err: any) {
       alert(err.message);
