@@ -73,5 +73,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 4000
 
 # Run migrations/sync schema and then start the application
-# We use db push --accept-data-loss because the production DB has no migration history
-CMD npx prisma db push --accept-data-loss && node dist/src/index.js
+# We use db push --force-reset because the production DB has existing rows that conflict with the new schema.
+# WARNING: This will clear all data on the first successful run.
+CMD npx prisma db push --force-reset && node dist/src/index.js
