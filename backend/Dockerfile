@@ -36,7 +36,8 @@ RUN npm run build
 # Stage 2: Runtime
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl
+# Install openssl for Prisma and curl for healthcheck
+RUN apk add --no-cache openssl curl
 
 WORKDIR /app
 
@@ -44,7 +45,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
 
-# Configure npm for resilience in runtime stage as well
+# Configure npm for resilience
 RUN npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000
@@ -52,8 +53,7 @@ RUN npm config set fetch-retries 5 && \
 # Copy package files
 COPY package.json package-lock.json* yarn.lock* ./
 
-# Install production dependencies only
-# We use --omit=dev and ignore-scripts to avoid redundant Prisma engine downloads if we copy them
+# Install production dependencies
 RUN npm ci --omit=dev --ignore-scripts
 
 # Copy Prisma schema
@@ -62,15 +62,15 @@ COPY prisma ./prisma
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy PRE-GENERATED prisma client and engines from builder to avoid network hits
+# Copy PRE-GENERATED prisma client and engines from builder
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Health check
+# Health check using curl (more standard for Coolify)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 4000) + '/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD curl -f http://localhost:4000/api/health || exit 1
 
 EXPOSE 4000
 
-# Start application
-CMD ["node", "dist/src/index.js"]
+# Run migrations and then start the application
+CMD npx prisma migrate deploy && node dist/src/index.js
