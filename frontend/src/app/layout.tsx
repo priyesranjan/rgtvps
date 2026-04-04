@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
+import Navbar from "@/components/layout/Navbar";
 import PageTransition from "@/components/ui/PageTransition";
 import NextTopLoader from "nextjs-toploader";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -34,6 +35,7 @@ export default function RootLayout({
         className={cn(`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans min-h-screen overflow-x-hidden`)}
       >
         <ThemeProvider>
+          <Navbar />
           {/* Premium gold progress bar on every navigation click */}
           <NextTopLoader
             color="#D4AF37"

@@ -3,6 +3,7 @@
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   data: { name: string; goldAdvance: number; withdrawable: number }[];
@@ -34,8 +35,8 @@ export default function YieldChart({ data }: Props) {
         <Tooltip
           contentStyle={{ backgroundColor: '#0B1120', borderColor: '#D4AF37', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
           itemStyle={{ fontSize: '12px' }}
-          formatter={(value: any, name: any) => [
-            `₹${Number(value).toLocaleString()}`, 
+          formatter={(value: string | number | readonly (string | number)[] | undefined, name: string | number | symbol | undefined) => [
+            formatCurrency(Number(Array.isArray(value) ? value[0] : (value || 0))),
             name === "goldAdvance" ? "Total Gold Advance" : "Total Withdrawable"
           ]}
         />

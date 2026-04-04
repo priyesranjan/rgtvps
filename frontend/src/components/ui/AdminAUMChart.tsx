@@ -32,7 +32,10 @@ export default function AdminAUMChart({ data }: Props) {
           }} />
         <Tooltip
           contentStyle={{ backgroundColor: "#0B1120", borderColor: "#D4AF37", borderRadius: "8px", color: "#fff" }}
-          formatter={(value: any) => [formatCurrency(value), "Total Gold Advance"]}
+          formatter={(value: string | number | readonly (string | number)[] | undefined) => [
+            formatCurrency(Number(Array.isArray(value) ? value[0] : (value || 0))), 
+            "Total Gold Advance"
+          ]}
         />
         <Area type="monotone" dataKey="aum" stroke="#D4AF37" strokeWidth={3}
           fillOpacity={1} fill="url(#aumGradient)" dot={{ fill: "#D4AF37", r: 4, strokeWidth: 0 }}

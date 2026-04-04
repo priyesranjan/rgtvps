@@ -1,136 +1,99 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Coins, TrendingUp, RefreshCw, LucideIcon } from "lucide-react";
+import { Truck, Shield, TrendingUp, RefreshCw } from "lucide-react";
 
-interface FeatureCardProps {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  delay: number;
-}
-
-function FeatureCard({ title, description, icon: Icon, delay }: FeatureCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    
-    // Get dimensions and cursor position relative to the card
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Calculate rotation (-10 to 10 degrees)
-    const multiplier = 20;
-    const xPct = (x / rect.width - 0.5) * multiplier;
-    const yPct = (y / rect.height - 0.5) * -multiplier; // Invert Y
-    
-    setRotateX(yPct);
-    setRotateY(xPct);
-  };
-
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, delay }}
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-        transition: 'transform 0.1s ease-out'
-      }}
-      className="relative h-[28rem] w-full group"
-    >
-      {/* Glow Effect */}
-      <div className="absolute inset-0 bg-gold-gradient rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
-      
-      {/* Card Body */}
-      <div className="absolute inset-0 bg-bg-surface/80 backdrop-blur-sm border border-gold-500/10 hover:border-gold-500/30 rounded-2xl p-8 transition-colors duration-500 flex flex-col items-start gap-6 overflow-hidden">
-        
-        {/* Subtle decorative background shape */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-gold-500/5 rounded-full blur-2xl group-hover:bg-gold-500/10 transition-colors duration-500" />
-        
-        {/* Icon */}
-        <div className="w-14 h-14 rounded-xl bg-bg-app border border-gold-500/20 flex items-center justify-center shadow-lg group-hover:shadow-gold-glow-intense transition-shadow duration-500 relative z-10">
-          <Icon className="w-6 h-6 text-gold-400" />
-        </div>
-        
-        <div className="space-y-4 relative z-10 w-full">
-          <h3 className="text-2xl font-heading font-semibold text-text-primary tracking-wide">{title}</h3>
-          <p className="text-text-secondary leading-relaxed text-[15px]">
-            {description}
-          </p>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+const FEATURES_DATA = [
+  {
+    title: "Insured Doorstep Delivery",
+    description: "Receive your pure 24K gold coins in safe, tamper-proof packaging delivered anywhere in India.",
+    icon: Truck,
+    className: "md:col-span-2",
+    delay: 0.2
+  },
+  {
+    title: "Instant Liquidity",
+    description: "Sell your gold back at live market prices and get instant credit to your linked bank account.",
+    icon: TrendingUp,
+    className: "md:col-span-1",
+    delay: 0.3
+  },
+  {
+    title: "Ultra-Secure Payouts",
+    description: "Our payment architecture ensures every transaction is encrypted and verified instantly.",
+    icon: RefreshCw,
+    className: "md:col-span-1",
+    delay: 0.4
+  },
+  {
+    title: "Complimentary Vaulting",
+    description: "We store your gold in BRINKS-certified high-security vaults at zero cost, fully covered by insurance.",
+    icon: Shield,
+    className: "md:col-span-2",
+    delay: 0.5
+  },
+];
 
 export default function Features() {
-  const features = [
-    {
-      title: "Physical Gold Advance",
-      description: "Secure your wealth physically. Visit our corporate office to participate directly in premium Gold Coins, processed seamlessly by our expert staff.",
-      icon: Coins,
-    },
-    {
-      title: "Steady Payout Returns",
-      description: "Watch your physical assets generate yield. Receive reliable daily, weekly, or monthly basic earnings directly to your verified account.",
-      icon: TrendingUp,
-    },
-    {
-      title: "Hassle-Free Withdrawals",
-      description: "Need liquidity? Request a withdrawal anytime and receive cash via our guaranteed 7-day hassle-free checkout process at any branch.",
-      icon: RefreshCw,
-    },
-  ];
-
   return (
-    <section className="py-32 relative overflow-hidden bg-bg-app">
+    <section className="py-32 relative overflow-hidden bg-bg-app border-y border-gold-500/10">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-20">
+        <div className="text-center max-w-3xl mx-auto mb-20" id="features">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-gold-500/20 mb-8"
+          >
+            <span className="text-[10px] font-black text-gold-500 uppercase tracking-[0.4em]">Engineered for Trust</span>
+          </motion.div>
+          
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-4xl md:text-5xl font-heading font-bold mb-6"
+            className="text-5xl md:text-7xl font-heading font-black mb-8 text-text-primary tracking-tighter"
           >
-            The Royal <span className="text-gradient-gold">Advantage</span>
+            The Gold Standard of <br /> <span className="text-gold-500 italic">Digital Assets.</span>
           </motion.h2>
+          
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-text-secondary text-lg"
+            className="text-text-secondary text-lg md:text-xl leading-relaxed font-medium"
           >
-            A physical asset backing meets digital convenience. We bridge the gap between tangible wealth and passive income.
+            Our ecosystem is built on transparency and speed. Whether saving for the future or liquidating today, we ensure a seamless experience.
           </motion.p>
         </div>
 
-        {/* Feature Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard 
-              key={feature.title} 
-              {...feature} 
-              delay={0.2 + (index * 0.1)} 
-            />
+        {/* Bento Grid - Pure Text Style */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 auto-rows-[280px]">
+          {FEATURES_DATA.map((feature) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: feature.delay }}
+              className={`relative rounded-[40px] p-10 border border-gold-500/10 bg-bg-surface/40 backdrop-blur-xl overflow-hidden group hover:border-gold-500/50 transition-all duration-700 ${feature.className} flex flex-col justify-between shadow-2xl`}
+            >
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="w-14 h-14 rounded-2xl border border-gold-500/10 flex items-center justify-center mb-10 group-hover:bg-gold-500/10 transition-all duration-700">
+                  <feature.icon className="w-7 h-7 text-gold-500" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-text-primary mb-4 font-heading tracking-tight">{feature.title}</h3>
+                  <p className="text-text-secondary text-sm font-medium leading-relaxed max-w-sm opacity-70">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>

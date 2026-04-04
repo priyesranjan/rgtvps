@@ -38,7 +38,7 @@ export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
         }
 
         setIsAuthorized(true);
-      } catch (err) {
+      } catch {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         router.push("/auth/login");

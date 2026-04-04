@@ -6,7 +6,7 @@ async function handleResponse(res: Response, endpoint: string, method: string) {
     try {
       const error = await res.json();
       errorMessage = error.error || error.message || errorMessage;
-    } catch (e) {
+    } catch {
       errorMessage = res.statusText || errorMessage;
     }
     
@@ -22,7 +22,7 @@ async function handleResponse(res: Response, endpoint: string, method: string) {
   const text = await res.text();
   try {
     return text ? JSON.parse(text) : {};
-  } catch (e) {
+  } catch {
     console.error(`[API PARSE ERROR] ${method} ${endpoint}:`, text);
     throw new Error("Invalid server response (not JSON)");
   }
@@ -41,7 +41,7 @@ export const apiClient = {
     return handleResponse(res, endpoint, "GET");
   },
 
-  post: async (endpoint: string, body: any, token?: string) => {
+  post: async (endpoint: string, body: unknown, token?: string) => {
     const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
     const res = await fetch(url, {
       method: "POST",
@@ -54,7 +54,7 @@ export const apiClient = {
     return handleResponse(res, endpoint, "POST");
   },
 
-  put: async (endpoint: string, body: any, token?: string) => {
+  put: async (endpoint: string, body: unknown, token?: string) => {
     const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
     const res = await fetch(url, {
       method: "PUT",
@@ -67,7 +67,7 @@ export const apiClient = {
     return handleResponse(res, endpoint, "PUT");
   },
 
-  patch: async (endpoint: string, body: any, token?: string) => {
+  patch: async (endpoint: string, body: unknown, token?: string) => {
     const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
     const res = await fetch(url, {
       method: "PATCH",

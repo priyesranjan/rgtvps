@@ -1,50 +1,22 @@
 "use client";
 
-import { useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Environment, ContactShadows, PresentationControls } from "@react-three/drei";
-import * as THREE from "three";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
-
-// The 3D Premium Gold object
-function GoldVault() {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.2;
-      meshRef.current.rotation.x += delta * 0.1;
-    }
-  });
-
-  return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={2}>
-      <mesh ref={meshRef}>
-        <icosahedronGeometry args={[2, 0]} />
-        <meshPhysicalMaterial
-          color="#D4AF37"
-          metalness={1}
-          roughness={0.1}
-          clearcoat={1}
-          clearcoatRoughness={0.1}
-          envMapIntensity={2}
-        />
-      </mesh>
-    </Float>
-  );
-}
 
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-screen pt-32 pb-20 lg:pt-24 lg:pb-0 overflow-hidden lg:flex lg:items-center">
-      {/* Background glow effects */}
-      <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-gold-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[150px] pointer-events-none" />
+    <motion.section 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1.5 }}
+      className="relative w-full min-h-screen pt-32 pb-20 lg:pt-24 lg:pb-0 overflow-hidden lg:flex lg:items-center bg-bg-app"
+    >
+      {/* Background Layer - Clean Obsidian */}
+      <div className="absolute inset-0 z-0 bg-bg-app" />
 
-      <div className="max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 lg:gap-8 items-center relative z-10">
+      <div className="max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 lg:gap-8 items-center relative z-20">
         
         {/* Left Content Area */}
         <div className="flex flex-col gap-8">
@@ -54,92 +26,131 @@ export default function Hero() {
             transition={{ duration: 0.8 }}
             className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-bg-surface/50 border border-gold-500/20 backdrop-blur-sm shrink-0">
-              <ShieldCheck className="w-4 h-4 text-gold-500 shrink-0" />
-              <span className="text-sm font-medium text-text-secondary">Institutional-Grade Security</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-500/10 border border-gold-500/20 backdrop-blur-md shrink-0">
+              <ShieldCheck className="w-4 h-4 text-gold-600 shrink-0" />
+              <span className="text-[10px] font-bold text-gold-400 uppercase tracking-[0.2em]">100% Pure 24K Certified Gold</span>
             </div>
 
-            {/* Client Trust Badge */}
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-bg-surface/50 border border-gold-500/20 backdrop-blur-sm">
+            {/* Client Trust Badge - Obsidian Style */}
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-lg">
               <div className="flex -space-x-2 shrink-0">
-                <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-[10px] font-bold text-white border-2 border-bg-app">JD</div>
-                <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-bg-app">VK</div>
-                <div className="w-7 h-7 rounded-full bg-yellow-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-bg-app">SK</div>
+                {['JD', 'VK', 'SK'].map((initials, idx) => (
+                  <div key={idx} className="w-7 h-7 rounded-full bg-gradient-to-br from-obsidian-700 to-obsidian-900 border border-gold-500/30 flex items-center justify-center text-[8px] font-black text-gold-500">
+                    {initials}
+                  </div>
+                ))}
               </div>
-              <span className="text-sm font-medium text-text-secondary">
-                Trusted by <span className="text-text-primary font-semibold">500+ Clients in Patna</span>
+              <span className="text-[11px] font-bold text-gold-200/60 uppercase tracking-widest">
+                Trusted by <span className="text-gold-500">1,200+</span> Investors
               </span>
             </div>
           </motion.div>
 
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold font-heading leading-tight"
-          >
-            The Ultimate <br />
-            <span className="text-gradient-gold">Digital Vault</span> <br />
-            For Your Wealth.
-          </motion.h1>
-
-          <motion.p 
+          <div className="space-y-4">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="text-6xl md:text-8xl font-heading font-black text-white mb-2 leading-[0.95] tracking-tighter"
+            >
+              The New Era of<br />
+              <span className="text-gradient-gold drop-shadow-[0_10px_30px_rgba(212,175,55,0.3)]">Digital Bullion.</span>
+            </motion.h1>
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "120px" }}
+              transition={{ duration: 1, delay: 0.5 }}
+              className="h-1.5 bg-gradient-to-r from-gold-600 to-transparent rounded-full"
+            />
+          </div>
+          
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-text-secondary max-w-lg leading-relaxed"
+            className="max-w-xl text-text-secondary text-lg md:text-xl mb-8 leading-relaxed font-medium"
           >
-            Participate directly in physical gold. Earn steady, reliable returns with zero market hassle, backed by tangible assets in our secure facilities.
+            Experience pure gold ownership with unparalleled security. Buy, store, and trade certified 24K gold with the touch of a button.
           </motion.p>
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center gap-4 pt-4"
+            className="flex flex-col sm:flex-row items-center gap-5 pt-4"
           >
             <Link href="/auth/login" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full text-base">
-                Start Earning <ArrowRight className="w-5 h-5 ml-2" />
+              <Button size="lg" className="w-full text-sm py-8 px-10 bg-gold-500 hover:bg-gold-600 text-black font-black uppercase tracking-[0.2em] transition-all duration-500 shadow-[0_10px_40px_rgba(212,175,55,0.3)] hover:scale-105 active:scale-95">
+                Invest Now <ArrowRight className="w-5 h-5 ml-3" />
               </Button>
             </Link>
-            <Link href="/about" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full text-base">
-                How It Works
+            <Link href="#coins" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="w-full text-sm py-8 px-10 border-gold-500/30 text-gold-400 hover:bg-gold-500/10 backdrop-blur-sm font-black uppercase tracking-[0.2em] transition-all duration-500">
+                View Collection
               </Button>
             </Link>
           </motion.div>
         </div>
 
-        {/* Right 3D Canvas Area */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, delay: 0.4 }}
-          className="h-[400px] lg:h-[700px] w-full relative mt-8 lg:mt-0"
-        >
-          <div className="absolute inset-0 bg-gold-500/5 rounded-full blur-3xl" />
-          <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-            <ambientLight intensity={0.5} />
-            <spotLight position={[10, 10, 10]} intensity={2} angle={0.15} penumbra={1} color="#FFF5D1" />
-            <pointLight position={[-10, -10, -10]} intensity={1} color="#4A90E2" />
+        <div className="relative h-[500px] lg:h-[700px] flex items-center justify-center mt-12 lg:mt-0 overflow-visible">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -20, 0]
+            }}
+            transition={{ 
+              duration: 2,
+              y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+            }}
+            className="relative w-[300px] h-[300px] lg:w-[450px] lg:h-[450px]"
+          >
+            {/* Main Container - REMOVED IMAGE */}
+            <div className="relative w-full h-full rounded-2xl p-4 overflow-visible border-2 border-gold-500/20 bg-gold-500/5 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl lg:text-6xl font-black text-gold-500 tracking-tighter mb-2">24K</div>
+                  <div className="text-sm lg:text-xl font-bold text-gold-400/60 uppercase tracking-[0.2em]">Pure Digital Bullion</div>
+                </div>
+            </div>
             
-            <PresentationControls
-              global
-              rotation={[0, 0.3, 0]}
-              polar={[-Math.PI / 3, Math.PI / 3]}
-              azimuth={[-Math.PI / 1.4, Math.PI / 2]}
+            {/* Achievement Badge Overlay */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1, duration: 0.8 }}
+              className="absolute -right-4 top-1/4 p-4 rounded-2xl bg-bg-surface border border-gold-500/30 backdrop-blur-xl shadow-2xl z-20 hidden md:block"
             >
-              <GoldVault />
-            </PresentationControls>
-
-            <Environment preset="city" />
-            <ContactShadows position={[0, -2.5, 0]} opacity={0.4} scale={10} blur={2} far={4} color="#D4AF37" />
-          </Canvas>
-        </motion.div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center text-gold-500">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-gold-500 uppercase tracking-tighter">Certified</div>
+                  <div className="text-xs font-bold text-white uppercase tracking-widest">99.9% Purity</div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
       </div>
-    </section>
+
+      {/* Scroll Indicator */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, y: [0, 10, 0] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 hidden lg:flex flex-col items-center gap-3"
+      >
+        <span className="text-[9px] font-black text-gold-700/60 uppercase tracking-[0.5em]">Scroll to Explore</span>
+        <div className="w-5 h-9 border border-gold-500/30 rounded-full flex justify-center p-1 backdrop-blur-sm">
+          <motion.div 
+            animate={{ y: [0, 14, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            className="w-1 h-2 bg-gold-500 rounded-full"
+          />
+        </div>
+      </motion.div>
+    </motion.section>
   );
 }
-
-

@@ -41,31 +41,33 @@
 }
 
 :root {
-  /* Light Theme Variables - Premium Warm Palette */
-  --bg-app: #fafafa;
+  /* Light Theme Variables - Warm Luxury Palette */
+  --bg-app: #fcfaf2; /* Soft Ivory */
   --bg-surface: #ffffff;
-  --text-primary: #1a1c1e;
-  --text-secondary: #5e6368;
+  --text-primary: #1c1917; /* Warm Charcoal */
+  --text-secondary: #44403c; /* Darkened Taupe for better contrast */
   --border-primary: rgba(212, 175, 55, 0.25);
   
-  --emerald-gradient-start: #f0fdf4;
-  --emerald-gradient-end: #fafafa;
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(212, 175, 55, 0.2);
+  --emerald-gradient-start: #fdfbf7;
+  --emerald-gradient-end: #fcfaf2;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(212, 175, 55, 0.25);
+  --bg-texture: url('/images/backgrounds/light_silk.png');
 }
 
 .dark {
-  /* Dark Theme Variables */
-  --bg-app: #000806;
-  --bg-surface: #011511;
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
+  /* Dark Theme Variables - Obsidian Gold Palette */
+  --bg-app: #050505; /* Deep Obsidian */
+  --bg-surface: #0a0a0a; /* Dark Onyx */
+  --text-primary: #fafaf9;
+  --text-secondary: #d6d3d1; /* High-contrast Warm Beige-Gold */
   --border-primary: rgba(212, 175, 55, 0.15);
 
-  --emerald-gradient-start: #011511;
-  --emerald-gradient-end: #000806;
-  --glass-bg: rgba(1, 13, 10, 0.4);
-  --glass-border: rgba(212, 175, 55, 0.1);
+  --emerald-gradient-start: #0a0a0a;
+  --emerald-gradient-end: #050505;
+  --glass-bg: rgba(10, 10, 10, 0.7);
+  --glass-border: rgba(212, 175, 55, 0.15);
+  --bg-texture: url('/images/backgrounds/dark_obsidian.png');
 }
 
 @layer base {
@@ -100,16 +102,19 @@
     border: 1px solid var(--glass-border);
   }
   .text-gradient-gold {
-    background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 50%, #96711B 100%);
+    background: linear-gradient(135deg, #d4af37 0%, #b8860b 50%, #8b6508 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .shadow-gold-glow {
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+  }
+  .shadow-gold-soft {
+    box-shadow: 0 4px 20px rgba(212, 175, 55, 0.08);
   }
   .shadow-gold-glow-intense {
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
   }
   .custom-scrollbar::-webkit-scrollbar {
     height: 4px;
@@ -133,6 +138,14 @@
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(212, 175, 55, 0.2);
     box-shadow: 0 8px 32px 0 rgba(212, 175, 55, 0.1);
+  }
+
+  .bg-obsidian-glass {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.8) 0%, rgba(212, 175, 55, 0.03) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
   }
 
   .bg-blue-glass {
@@ -166,6 +179,49 @@
   .text-glow-blue {
     text-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
   }
+
+  .bg-premium-texture {
+    background-image: var(--bg-texture);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  .bg-texture-overlay {
+    position: relative;
+  }
+  
+  .bg-texture-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--bg-texture);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15; /* Increased for better visibility */
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .dark .bg-texture-overlay::before {
+    opacity: 0.3; /* Increased for better visibility on dark mode */
+  }
+
+  .gold-thread {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.3) 50%, transparent 100%);
+  }
+
+  .market-pulse-glow {
+    animation: market-pulse 4s ease-in-out infinite;
+  }
+}
+
+@keyframes market-pulse {
+  0%, 100% { opacity: 0.3; filter: blur(8px); }
+  50% { opacity: 0.6; filter: blur(12px); }
 }
 
 @keyframes shimmer {

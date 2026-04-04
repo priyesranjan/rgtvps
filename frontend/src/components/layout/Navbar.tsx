@@ -2,34 +2,35 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const navLinks = [
-  { name: "How It Works", href: "/about" },
-  { name: "My Assets", href: "/dashboard/customer" },
-  { name: "Payouts", href: "/dashboard/customer" },
-  { name: "Contact Office", href: "/contact" },
+  { name: "About Our Gold", href: "/about" },
+  { name: "Products", href: "/#coins" },
+  { name: "Safety & Legal", href: "/legal/privacy" },
+  { name: "Contact Us", href: "/contact" },
 ];
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id?: string; role: string } | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     const userJson = localStorage.getItem("user");
     if (userJson) {
       try {
-        setUser(JSON.parse(userJson));
-      } catch (e) {
-        setUser(null);
+        const parsed = JSON.parse(userJson);
+        setTimeout(() => setUser(parsed), 0);
+      } catch {
+        setTimeout(() => setUser(null), 0);
       }
     }
   }, [pathname]);
@@ -42,10 +43,10 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
+  // Hide Navbar on dashboard and auth routes
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/auth")) {
+    return null;
+  }
 
   return (
     <header
@@ -57,16 +58,19 @@ export default function Navbar() {
       )}
     >
       <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center relative z-50 py-2">
-          <Image 
-            src="/RoyalGoldTrader-Logo.png" 
-            alt="Royal Gold Traders Logo" 
-            width={140} 
-            height={48} 
-            className="h-10 w-auto object-contain drop-shadow-md"
-            priority
-          />
+        <Link href="/" className="flex items-center gap-3 relative z-50 py-2 group">
+          <div className="relative w-10 h-10 md:w-12 md:h-12">
+            <Image
+              src="/RoyalGoldTrader-Logo.png"
+              alt="Royal Gold Traders Logo"
+              fill
+              className="object-contain transition-transform group-hover:scale-110"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xl font-black text-gold-500 tracking-tighter leading-none">ROYAL GOLD</span>
+            <span className="text-[8px] font-bold text-gold-400/60 uppercase tracking-[0.3em] mt-0.5">Traders </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
@@ -77,6 +81,7 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   "text-sm font-medium uppercase tracking-wider relative group transition-colors duration-200",
                   isActive ? "text-gold-400" : "text-text-secondary hover:text-gold-400"
@@ -113,9 +118,9 @@ export default function Navbar() {
           ) : (
             <Link href={
               user.role === "SUPERADMIN" ? "/dashboard/superadmin" :
-              user.role === "ADMIN" ? "/dashboard/admin" :
-              user.role === "STAFF" ? "/dashboard/staff" :
-              "/dashboard/customer"
+                user.role === "ADMIN" ? "/dashboard/admin" :
+                  user.role === "STAFF" ? "/dashboard/staff" :
+                    "/dashboard/customer"
             }>
               <Button size="sm">
                 {user.role === "SUPERADMIN" ? "Portal Control" : "View Dashboard"} <User className="w-4 h-4 ml-1" />
@@ -168,6 +173,7 @@ export default function Navbar() {
                 >
                   <Link
                     href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       "text-2xl font-heading uppercase tracking-widest transition-colors",
                       isActive ? "text-gold-400" : "text-text-secondary hover:text-gold-400"

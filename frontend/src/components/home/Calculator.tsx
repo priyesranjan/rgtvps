@@ -13,6 +13,50 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    dataKey: string;
+    value: number | string;
+    [key: string]: unknown;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    // Find the specific data points from payload
+    const investmentPoint = payload.find((p) => p.dataKey === 'investment');
+    const totalValuePoint = payload.find((p) => p.dataKey === 'totalValue');
+    
+    const invVal = investmentPoint ? Number(investmentPoint.value) : 0;
+    const totVal = totalValuePoint ? Number(totalValuePoint.value) : 0;
+    const profitVal = totVal - invVal;
+
+    return (
+      <div className="bg-bg-surface/95 border border-gold-500/20 p-4 rounded-xl shadow-2xl backdrop-blur-md">
+        <p className="text-text-secondary mb-3 font-mono text-xs uppercase tracking-wider">{label} Projection</p>
+        <div className="space-y-2">
+          <p className="text-text-primary font-mono text-sm flex justify-between gap-4">
+            <span className="text-text-secondary">Principal:</span> 
+            <span>₹{invVal.toLocaleString('en-IN')}</span>
+          </p>
+          <p className="text-emerald-600 dark:text-emerald-400 font-mono text-sm font-bold flex justify-between gap-4">
+            <span className="text-text-secondary font-normal">Est. Profit:</span> 
+            <span>+₹{profitVal.toLocaleString('en-IN')}</span>
+          </p>
+          <div className="h-px w-full bg-gold-500/20 my-2" />
+          <p className="text-gold-600 dark:text-gold-400 font-mono text-sm font-bold flex justify-between gap-4">
+            <span className="text-text-secondary font-normal">Total Value:</span> 
+            <span>₹{totVal.toLocaleString('en-IN')}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function Calculator() {
   const [goldAdvance, setGoldAdvance] = useState<number>(500000); // 5 Lakhs default
   const [monthlyRate, setMonthlyRate] = useState<number>(3); // 3% monthly default
@@ -33,46 +77,8 @@ export default function Calculator() {
     };
   });
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      // Find the specific data points from payload
-      const investmentPoint = payload.find((p: any) => p.dataKey === 'investment');
-      const totalValuePoint = payload.find((p: any) => p.dataKey === 'totalValue');
-      
-      const invVal = investmentPoint ? investmentPoint.value : 0;
-      const totVal = totalValuePoint ? totalValuePoint.value : 0;
-      const profitVal = totVal - invVal;
-
-      return (
-        <div className="bg-bg-surface/95 border border-gold-500/20 p-4 rounded-xl shadow-2xl backdrop-blur-md">
-          <p className="text-text-secondary mb-3 font-mono text-xs uppercase tracking-wider">{label} Projection</p>
-          <div className="space-y-2">
-            <p className="text-text-primary font-mono text-sm flex justify-between gap-4">
-              <span className="text-text-secondary">Principal:</span> 
-              <span>₹{invVal.toLocaleString('en-IN')}</span>
-            </p>
-            <p className="text-emerald-600 dark:text-emerald-400 font-mono text-sm font-bold flex justify-between gap-4">
-              <span className="text-text-secondary font-normal">Est. Profit:</span> 
-              <span>+₹{profitVal.toLocaleString('en-IN')}</span>
-            </p>
-            <div className="h-px w-full bg-gold-500/20 my-2" />
-            <p className="text-gold-600 dark:text-gold-400 font-mono text-sm font-bold flex justify-between gap-4">
-              <span className="text-text-secondary font-normal">Total Value:</span> 
-              <span>₹{totVal.toLocaleString('en-IN')}</span>
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <section className="py-24 relative overflow-hidden bg-bg-surface border-y border-gold-500/10">
-      {/* Background elements */}
-      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-gold-500/5 rounded-full blur-[120px]" />
-      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
-
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Header */}
