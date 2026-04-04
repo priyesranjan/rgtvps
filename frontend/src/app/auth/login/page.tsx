@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Lock, Mail, KeyRound, ShieldAlert, Zap,
@@ -12,7 +13,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState<"password" | "otp">("password");
@@ -150,9 +151,11 @@ export default function LoginPage() {
         <div className="bg-bg-surface backdrop-blur-xl border border-gold-500/20 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
           <div className="text-center mb-6 relative z-10">
             <div className="inline-flex items-center justify-center mb-6">
-              <img
+              <Image
                 src="/RoyalGoldTrader-Logo.png"
                 alt="Royal Gold Trader Logo"
+                width={96}
+                height={96}
                 className="w-24 h-24 object-contain"
               />
             </div>

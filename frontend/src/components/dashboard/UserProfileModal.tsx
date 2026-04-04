@@ -6,16 +6,18 @@ import {
   X, User, Mail, Phone, Shield, Loader2, Save, 
   CreditCard, Fingerprint, Users, UserCheck 
 } from "lucide-react";
+import Image from "next/image";
+import { User as UserType } from "@/types/dashboard";
 
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
+  user: UserType;
   onUpdate: () => void;
   callerRole: "ADMIN" | "STAFF";
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 export default function UserProfileModal({ isOpen, onClose, user: initialUser, onUpdate, callerRole }: UserProfileModalProps) {
   const [formData, setFormData] = useState({
@@ -315,7 +317,13 @@ export default function UserProfileModal({ isOpen, onClose, user: initialUser, o
                     <div className="flex items-center gap-4">
                       {formData.photo && (
                         <div className="w-12 h-12 rounded-full border border-white/10 overflow-hidden bg-bg-app">
-                          <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                          <Image 
+                            src={formData.photo} 
+                            alt="Preview" 
+                            width={48} 
+                            height={48} 
+                            className="w-full h-full object-cover" 
+                          />
                         </div>
                       )}
                       <div className="flex-1 relative group">

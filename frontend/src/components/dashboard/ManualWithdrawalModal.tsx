@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Wallet, Loader2, CheckCircle2, AlertTriangle, MessageSquare, ArrowUpRight } from "lucide-react";
+import { X, Loader2, AlertTriangle, MessageSquare, ArrowUpRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { User as UserType } from "@/types/dashboard";
 
 interface ManualWithdrawalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (message: string) => void;
-  user: { id: string; name: string; wallet?: { profitAmount: number; referralAmount: number; goldAdvanceAmount: number } } | null;
+  user: UserType | null;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 type WithdrawalSource = "PROFIT" | "REFERRAL" | "GOLD_ADVANCE";
 
@@ -55,7 +56,7 @@ export default function ManualWithdrawalModal({ isOpen, onClose, onSuccess, user
       setDescription("");
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

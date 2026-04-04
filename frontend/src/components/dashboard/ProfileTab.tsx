@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { User, Mail, Phone, MapPin, Camera, Save, Loader2, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
+import { User as UserType } from "@/types/dashboard";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 interface ProfileTabProps {
-  user: any;
-  onUpdateSuccess: (updatedUser: any) => void;
+  user: UserType;
+  onUpdateSuccess: (updatedUser: UserType) => void;
 }
 
 export default function ProfileTab({ user, onUpdateSuccess }: ProfileTabProps) {
@@ -121,7 +123,13 @@ export default function ProfileTab({ user, onUpdateSuccess }: ProfileTabProps) {
             <div className="relative inline-block mb-4 group cursor-pointer" onClick={() => document.getElementById('photo-upload')?.click()}>
               <div className="w-32 h-32 rounded-full border-4 border-gold-500/20 overflow-hidden bg-bg-app flex items-center justify-center">
                 {formData.photo ? (
-                  <img src={formData.photo} alt={formData.name} className="w-full h-full object-cover" />
+                  <Image 
+                    src={formData.photo} 
+                    alt={formData.name} 
+                    width={128} 
+                    height={128} 
+                    className="w-full h-full object-cover" 
+                  />
                 ) : (
                   <User className="w-16 h-16 text-gold-500/40" />
                 )}

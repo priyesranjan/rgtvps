@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, MapPin, Phone, Instagram, Linkedin, Youtube, Facebook, ShieldCheck } from "lucide-react";
 
 export default function Footer() {
@@ -13,9 +14,11 @@ export default function Footer() {
           <div className="lg:col-span-4 flex flex-col gap-6">
             <Link href="/" className="flex items-center gap-3 relative w-fit group">
               <div className="relative w-12 h-12">
-                <img 
+                <Image 
                   src="/RoyalGoldTrader-Logo.png" 
                   alt="Royal Gold Traders Logo" 
+                  width={48} 
+                  height={48} 
                   className="w-full h-full object-contain transition-transform group-hover:scale-110"
                 />
               </div>

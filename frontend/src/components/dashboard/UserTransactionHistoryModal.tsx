@@ -4,18 +4,19 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, ArrowLeftRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { User as UserType, Transaction as TransactionType } from "@/types/dashboard";
 
 interface UserTransactionHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
+  user: UserType;
   callerRole: "ADMIN" | "STAFF";
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 export default function UserTransactionHistoryModal({ isOpen, onClose, user, callerRole }: UserTransactionHistoryModalProps) {
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<TransactionType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

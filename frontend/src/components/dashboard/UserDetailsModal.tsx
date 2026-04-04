@@ -9,16 +9,18 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import AddGoldAdvanceModal from "./AddGoldAdvanceModal";
 import UserTransactionHistoryModal from "./UserTransactionHistoryModal";
+import Image from "next/image";
+import { User as UserType } from "@/types/dashboard";
 
 interface UserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
-  allStaff: any[];
+  user: any; // UserType with extra relational fields like assignedStaff
+  allStaff: UserType[];
   onUpdate: () => void;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUpdate }: UserDetailsModalProps) {
   const [isReassigning, setIsReassigning] = useState(false);
@@ -79,7 +81,13 @@ export default function UserDetailsModal({ isOpen, onClose, user, allStaff, onUp
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-400 font-bold text-lg sm:text-xl overflow-hidden shrink-0">
                     {user.photo ? (
-                      <img src={user.photo} alt={user.name} className="w-full h-full object-cover" />
+                      <Image 
+                        src={user.photo} 
+                        alt={user.name} 
+                        width={48} 
+                        height={48} 
+                        className="w-full h-full object-cover" 
+                      />
                     ) : (
                       user.name?.[0] || '?'
                     )}

@@ -16,6 +16,12 @@ import { formatCurrency } from "@/lib/utils";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { apiClient } from "@/lib/api-client";
+import { 
+  User as UserType, 
+  Transaction as TransactionType,
+  Withdrawal as WithdrawalType,
+  GoldAdvance as GoldAdvanceType
+} from "@/types/dashboard";
 
 // Dynamic import prevents SSR which causes -1/-1 dimension bug in Recharts
 const YieldChart = dynamic(() => import("@/components/ui/YieldChart"), {
@@ -37,7 +43,7 @@ const navItems = [
   { label: "Profile", icon: User },
 ];
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 /* ─── Toast ─── */
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
@@ -222,7 +228,7 @@ function WithdrawalModal({ onClose, onSuccess, investedBalance, profitBalance, r
 }
 
 /* ─── Transaction Table ─── */
-function TransactionTable({ rows, onDownload }: { rows: any[]; onDownload: (tx: any) => void }) {
+function TransactionTable({ rows, onDownload }: { rows: TransactionType[]; onDownload: (tx: TransactionType) => void }) {
   return (
     <div className="bg-bg-surface border border-gold-500/10 rounded-2xl overflow-hidden">
       <div className="overflow-x-auto">
@@ -286,22 +292,25 @@ export default function CustomerDashboardPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  function handleInvoiceDownload(inv: any) {
+  function handleInvoiceDownload(inv: TransactionType) {
     downloadInvoicePDF({ 
       ...inv, 
+      date: inv.date || new Date().toLocaleDateString(),
+      amount: String(inv.amount), // Ensure string for InvoiceData
+      rawAmount: Number(inv.rawAmount || inv.amount), // Fallback to amount if rawAmount missing
       customerName: userData?.name || "Valued Customer", 
       customerId: userData?.id?.slice(-8).toUpperCase() || "RGT-CUST",
-      userName: userData?.name || "Valued Customer"
+      userName: userData?.name || "Verified Customer"
     });
     showToast(`${inv.id} downloaded successfully!`);
   }
 
   /* ─── Real Data State ─── */
-  const [userData, setUserData] = useState<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [goldAdvances, setGoldAdvances] = useState<any[]>([]);
-  const [transactionsData, setTransactionsData] = useState<any[]>([]);
-  const [withdrawalsList, setWithdrawalsList] = useState<any[]>([]);
+  const [userData, setUserData] = useState<UserType | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+  const [goldAdvances, setGoldAdvances] = useState<GoldAdvanceType[]>([]);
+  const [transactionsData, setTransactionsData] = useState<TransactionType[]>([]);
+  const [withdrawalsList, setWithdrawalsList] = useState<WithdrawalType[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -408,7 +417,7 @@ export default function CustomerDashboardPage() {
     showToast(err.message || "Connection error");
   };
 
-  const loadTabData = async (tab: string, userOverride?: any) => {
+  const loadTabData = async (tab: string, userOverride?: UserType) => {
     switch (tab) {
       case "Portfolio":
       case "Transactions":
@@ -513,6 +522,7 @@ export default function CustomerDashboardPage() {
     name: user?.name || "Verified Customer",
     role: "CUSTOMER",
     details: "Vault Owner",
+    photo: userData?.photo,
     icon: ShieldCheck,
     iconBg: "bg-bg-app",
     iconColor: "text-gold-400",
@@ -635,8 +645,9 @@ export default function CustomerDashboardPage() {
                       balanceAfter: formatCurrency(tx.balanceAfter || 0),
                       rawType: tx.rawType,
                       id: tx.id,
+                      createdAt: tx.createdAt, // Ensure createdAt is preserved
                       description: tx.description
-                    }))} onDownload={async (tx) => {
+                    }))} onDownload={async (tx: TransactionType) => {
                       const typeLabel = tx.rawType === "WITHDRAWAL" ? "voucher" : "invoice";
                       showToast(`Generating ${typeLabel}...`);
                       try {
@@ -703,58 +714,23 @@ export default function CustomerDashboardPage() {
                     ))}
                   </div>
                   <TransactionTable rows={transactionsData.map(tx => ({
+                    ...tx,
                     type: (tx.type || "OTHER").replace(/_/g, " "),
-                    date: new Date(tx.createdAt).toLocaleDateString(),
-                    amount: `${tx.type === "WITHDRAWAL" ? "-" : "+"}${formatCurrency(tx.amount)}`,
+                    date: new Date(tx.createdAt || Date.now()).toLocaleDateString(),
+                    amount: `${tx.type === "WITHDRAWAL" ? "-" : "+"}${formatCurrency(Number(tx.amount))}`,
                     status: tx.status || "Completed",
                     statusColor: tx.status === "PENDING" ? "blue" : "green",
                     icon: tx.icon,
                     iconBg: tx.iconBg,
                     iconColor: tx.iconColor,
                     amountColor: tx.amountColor,
-                    balanceAfter: formatCurrency(tx.balanceAfter || 0),
+                    balanceAfter: formatCurrency(Number(tx.balanceAfter || 0)),
                     rawType: tx.rawType,
                     id: tx.id,
                     entityId: tx.entityId,
+                    createdAt: tx.createdAt,
                     description: tx.description
-                  }))} onDownload={async (tx) => {
-                    const typeLabel = tx.rawType === "WITHDRAWAL" ? "voucher" : "invoice";
-                    showToast(`Generating ${typeLabel}...`);
-                    try {
-                      const token = localStorage.getItem("token");
-                      
-                      let url = "";
-                      if (tx.rawType === "WITHDRAWAL") {
-                        const withdrawalId = tx.entityId || tx.id;
-                        url = `${API_BASE}/withdrawals/${withdrawalId}/invoice`;
-                      } else {
-                        const match = tx.description?.match(/#([a-z0-9-]+)/i);
-                        const advanceId = tx.entityId || (match ? match[1] : (tx.rawType === "GOLD_ADVANCE" ? tx.id : null));
-                        
-                        if (!advanceId) {
-                          throw new Error("Could not determine Gold Advance reference.");
-                        }
-                        url = `${API_BASE}/gold-advances/${advanceId}/invoice`;
-                      }
-
-                      const res = await fetch(url, {
-                        headers: { "Authorization": `Bearer ${token}` }
-                      });
-                      if (!res.ok) throw new Error(`${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} generation failed.`);
-                      const html = await res.text();
-                      const printWindow = window.open('', '_blank');
-                      if (printWindow) {
-                        printWindow.document.write(html);
-                        printWindow.document.close();
-                        printWindow.focus();
-                        setTimeout(() => {
-                          printWindow.print();
-                        }, 500);
-                      }
-                    } catch (err: any) {
-                      showToast(err.message);
-                    }
-                  }} />
+                  }))} onDownload={handleInvoiceDownload} />
                 </motion.div>
               )}
 
@@ -860,59 +836,24 @@ export default function CustomerDashboardPage() {
                     <h2 className="text-2xl font-heading font-bold text-text-primary">Invoices & Receipts</h2>
                   </div>
                   <div className="bg-bg-surface border border-gold-500/10 rounded-2xl overflow-hidden">
-                    <TransactionTable rows={transactionsData.filter(tx => ["GOLD_ADVANCE", "DEPOSIT", "WITHDRAWAL"].includes(tx.rawType)).map(tx => ({
+                    <TransactionTable rows={transactionsData.map(tx => ({
+                      ...tx,
                       type: tx.type.replace(/_/g, " "),
-                      date: new Date(tx.createdAt).toLocaleDateString(),
-                      amount: `${tx.type === "WITHDRAWAL" ? "-" : "+"}${formatCurrency(tx.amount)}`,
+                      date: new Date(tx.createdAt || Date.now()).toLocaleDateString(),
+                      amount: `${tx.type === "WITHDRAWAL" ? "-" : "+"}${formatCurrency(Number(tx.amount))}`,
                       status: tx.status || "Completed",
                       statusColor: tx.status === "PENDING" ? "blue" : "green",
                       icon: tx.icon,
                       iconBg: tx.iconBg,
                       iconColor: tx.iconColor,
                       amountColor: tx.amountColor,
-                      balanceAfter: formatCurrency(tx.balanceAfter || 0),
+                      balanceAfter: formatCurrency(Number(tx.balanceAfter || 0)),
                       rawType: tx.rawType,
                       id: tx.id,
                       entityId: tx.entityId,
+                      createdAt: tx.createdAt,
                       description: tx.description
-                    }))} onDownload={async (tx) => {
-                      const typeLabel = tx.rawType === "WITHDRAWAL" ? "voucher" : "invoice";
-                      showToast(`Generating ${typeLabel}...`);
-                      try {
-                        const token = localStorage.getItem("token");
-                        
-                        let url = "";
-                        if (tx.rawType === "WITHDRAWAL") {
-                          const withdrawalId = tx.entityId || tx.id;
-                          url = `${API_BASE}/withdrawals/${withdrawalId}/invoice`;
-                        } else {
-                          const match = tx.description?.match(/#([a-z0-9-]+)/i);
-                          const advanceId = tx.entityId || (match ? match[1] : (tx.rawType === "GOLD_ADVANCE" ? tx.id : null));
-                          
-                          if (!advanceId) {
-                            throw new Error("Could not determine Gold Advance reference.");
-                          }
-                          url = `${API_BASE}/gold-advances/${advanceId}/invoice`;
-                        }
-
-                        const res = await fetch(url, {
-                          headers: { "Authorization": `Bearer ${token}` }
-                        });
-                        if (!res.ok) throw new Error(`${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} generation failed.`);
-                        const html = await res.text();
-                        const printWindow = window.open('', '_blank');
-                        if (printWindow) {
-                          printWindow.document.write(html);
-                          printWindow.document.close();
-                          printWindow.focus();
-                          setTimeout(() => {
-                            printWindow.print();
-                          }, 500);
-                        }
-                      } catch (err: any) {
-                        showToast(err.message);
-                      }
-                    }} />
+                    }))} onDownload={handleInvoiceDownload} />
                   </div>
                 </motion.div>
               )}
@@ -965,18 +906,15 @@ export default function CustomerDashboardPage() {
                 </motion.div>
               )}
 
-              {activeTab === "Profile" && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              {activeTab === "Profile" && (userData || user) && (
                 <ProfileTab 
-                  user={currentUser || userData} 
-                  onUpdateSuccess={(updated) => {
-                    setCurrentUser(updated);
-                    localStorage.setItem("user", JSON.stringify({ ...userData, ...updated }));
+                  user={userData || (user as any)} 
+                  onUpdateSuccess={() => {
+                    fetchBaseData();
                     showToast("Profile updated successfully!");
                   }} 
                 />
-              </motion.div>
-            )}
+              )}
           </AnimatePresence>
           </div>
         </main>

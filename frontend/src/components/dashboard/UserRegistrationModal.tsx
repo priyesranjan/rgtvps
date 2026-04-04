@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UserPlus, Mail, Lock, Shield, Loader2, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { User as UserType } from "@/types/dashboard";
 
 interface UserRegistrationModalProps {
   isOpen: boolean;
@@ -11,7 +13,7 @@ interface UserRegistrationModalProps {
   callerRole: "ADMIN" | "STAFF";
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 export default function UserRegistrationModal({ isOpen, onClose, onSuccess, callerRole }: UserRegistrationModalProps) {
   const [formData, setFormData] = useState({
@@ -30,8 +32,7 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
     initialGoldAdvanceAmount: 0,
     staffId: "",
   });
-  const [staffList, setStaffList] = useState<any[]>([]);
-  const [availableReferrers, setAvailableReferrers] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [referrerMobile, setReferrerMobile] = useState("");
@@ -346,7 +347,13 @@ export default function UserRegistrationModal({ isOpen, onClose, onSuccess, call
                     <div className="flex items-center gap-4">
                       {formData.photo && (
                         <div className="w-12 h-12 rounded-full border border-gold-500/20 overflow-hidden bg-bg-app">
-                          <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                          <Image 
+                            src={formData.photo} 
+                            alt="Preview" 
+                            width={48} 
+                            height={48} 
+                            className="w-full h-full object-cover" 
+                          />
                         </div>
                       )}
                       <div className="flex-1 relative group">

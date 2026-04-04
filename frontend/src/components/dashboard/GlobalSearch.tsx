@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, User, Mail, Phone, Fingerprint, Loader2, X } from "lucide-react";
+import Image from "next/image";
+import { User as UserType } from "@/types/dashboard";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 interface GlobalSearchProps {
   roleFilter?: string;
-  onSelectUser?: (user: any) => void;
+  onSelectUser?: (user: UserType) => void;
   placeholder?: string;
   className?: string;
 }
 
 export default function GlobalSearch({ roleFilter, onSelectUser, placeholder = "Search for users...", className }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<UserType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,19 +32,7 @@ export default function GlobalSearch({ roleFilter, onSelectUser, placeholder = "
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.trim().length >= 2) {
-        handleSearch();
-      } else {
-        setResults([]);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -60,7 +50,19 @@ export default function GlobalSearch({ roleFilter, onSelectUser, placeholder = "
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [query, roleFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query.trim().length >= 2) {
+        handleSearch();
+      } else {
+        setResults([]);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [query, handleSearch]);
 
   return (
     <div ref={containerRef} className={cn("relative w-full max-w-md", className)}>
@@ -111,7 +113,13 @@ export default function GlobalSearch({ roleFilter, onSelectUser, placeholder = "
                 >
                   <div className="w-10 h-10 rounded-full border border-gold-500/20 overflow-hidden bg-bg-app shrink-0">
                     {u.photo ? (
-                      <img src={u.photo} alt={u.name} className="w-full h-full object-cover" />
+                      <Image 
+                        src={u.photo} 
+                        alt={u.name} 
+                        width={40} 
+                        height={40} 
+                        className="w-full h-full object-cover" 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gold-500/40">
                         <User className="w-5 h-5" />

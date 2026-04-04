@@ -17,20 +17,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const initialTheme = savedTheme || (mediaQuery.matches ? "dark" : "light");
-    setTheme(initialTheme);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      const root = window.document.documentElement;
-      root.classList.remove("light", "dark");
-      root.classList.add(theme);
-      root.style.colorScheme = theme;
-      localStorage.setItem("theme", theme);
+    const savedTheme = localStorage.getItem("theme") as Theme | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      if (mediaQuery.matches) setTheme("dark");
     }
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    root.style.colorScheme = theme;
+    localStorage.setItem("theme", theme);
   }, [theme, mounted]);
 
   const toggleTheme = () => {

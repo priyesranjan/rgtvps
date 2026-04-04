@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Menu, X, LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -22,6 +23,7 @@ interface DashboardSidebarProps {
     name: string;
     role: string;
     details?: string;
+    photo?: string;
     icon?: LucideIcon;
     iconBg?: string;
     iconColor?: string;
@@ -91,8 +93,14 @@ export default function DashboardSidebar({
             user.borderColor || "border-gold-500/20",
             user.iconColor || "text-white"
           )}>
-            {(user as any).photo ? (
-              <img src={(user as any).photo} alt={user.name} className="w-full h-full object-cover" />
+            {user.photo ? (
+              <Image 
+                src={user.photo} 
+                alt={user.name} 
+                width={40} 
+                height={40} 
+                className="w-full h-full object-cover" 
+              />
             ) : user.icon ? (
               <user.icon className="w-5 h-5" />
             ) : (

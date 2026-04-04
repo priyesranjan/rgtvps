@@ -19,8 +19,46 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Royal Gold Traders",
-  description: "The ultimate centralized platform for premium gold trading.",
+  title: {
+    default: "Royal Gold Traders | Premium Gold Assets",
+    template: "%s | Royal Gold Traders"
+  },
+  description: "Secure, transparent, and premium gold trading platform. Invest in 24K pure gold with institutional-grade security and real-time market tracking.",
+  keywords: ["gold trading", "24k gold", "gold investment", "royal gold traders", "fintech gold", "buy gold india"],
+  authors: [{ name: "Royal Gold Traders Team" }],
+  creator: "Royal Gold Traders",
+  publisher: "Royal Gold Traders",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: "https://royalgoldtraders.in",
+    siteName: "Royal Gold Traders",
+    title: "Royal Gold Traders | Invest in 24K Pure Gold",
+    description: "The ultimate centralized platform for premium gold trading. Secure, transparent, and built for the future.",
+    images: [
+      {
+        url: "/og-image.png", // Ensure this exists or I'll create a placeholder
+        width: 1200,
+        height: 630,
+        alt: "Royal Gold Traders Premium Dashboard",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Royal Gold Traders | Premium Gold Assets",
+    description: "The ultimate centralized platform for premium gold trading.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
