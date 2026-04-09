@@ -1,7 +1,12 @@
 import axios from "axios";
 
-const SMS_API_KEY = process.env.SMS_API_KEY || "a4f42790-1574-11f1-bcb0-0200cd936042";
-const BASE_URL = `https://2factor.in/API/V1/${SMS_API_KEY}`;
+function getBaseUrl() {
+  const key = process.env.SMS_API_KEY;
+  if (!key) {
+    throw new Error("SMS_API_KEY is not configured.");
+  }
+  return `https://2factor.in/API/V1/${key}`;
+}
 
 export class SMSService {
   /**
@@ -10,10 +15,11 @@ export class SMSService {
    */
   static async sendOTP(mobile: string): Promise<string> {
     try {
+      const baseUrl = getBaseUrl();
       // 2Factor expects 10-digit mobile or with country code.
       // We'll clean it to ensure it's just numbers.
       const cleanMobile = mobile.replace(/\D/g, "");
-      const url = `${BASE_URL}/SMS/${cleanMobile}/AUTOGEN/RGT_OTP`;
+      const url = `${baseUrl}/SMS/${cleanMobile}/AUTOGEN/RGT_OTP`;
       
       const response = await axios.get(url);
       if (response.data.Status === "Success") {
@@ -32,7 +38,8 @@ export class SMSService {
    */
   static async verifyOTP(sessionId: string, otp: string): Promise<boolean> {
     try {
-      const url = `${BASE_URL}/SMS/VERIFY/${sessionId}/${otp}`;
+      const baseUrl = getBaseUrl();
+      const url = `${baseUrl}/SMS/VERIFY/${sessionId}/${otp}`;
       const response = await axios.get(url);
       
       return response.data.Status === "Success" && response.data.Details === "OTP Matched";
@@ -50,8 +57,9 @@ export class SMSService {
     // 2Factor Transactional API (POST)
     // Values are comma separated for template variables {VAR1}, {VAR2}...
     try {
+      const baseUrl = getBaseUrl();
       const cleanMobile = mobile.replace(/\D/g, "");
-      const url = `${BASE_URL}/ADDON_SERVICES/SEND/TSMS`;
+      const url = `${baseUrl}/ADDON_SERVICES/SEND/TSMS`;
       
       const payload = {
         From: "RGTIND",

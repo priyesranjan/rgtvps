@@ -92,6 +92,14 @@ export default function StaffDashboardPage() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [customers, setCustomers] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any[]>([]);
+  const [coinIncentives, setCoinIncentives] = useState<any[]>([]);
+  const [coinDatePreset, setCoinDatePreset] = useState("ALL");
+  const [coinDateFrom, setCoinDateFrom] = useState("");
+  const [coinDateTo, setCoinDateTo] = useState("");
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isOrderLoading, setIsOrderLoading] = useState(false);
+  const [ordersIndex, setOrdersIndex] = useState<Record<string, any>>({});
   const [transactions, setTransactions] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,6 +149,140 @@ export default function StaffDashboardPage() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
 
+  const csvEscape = (value: any) => {
+    const str = String(value ?? "");
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const handleExportCoinIncentivesCsv = () => {
+    if (!coinIncentives.length) {
+      showToast("No incentive rows available to export");
+      return;
+    }
+    const headers = ["Transaction ID", "Customer", "Customer Email", "Order ID", "Amount", "Description", "Created At"];
+    const rows = coinIncentives.map((tx) => [
+      tx.id,
+      tx.performedBy?.name || "",
+      tx.performedBy?.email || "",
+      tx.entityId || "",
+      Number(tx.amount || 0),
+      tx.description || "",
+      new Date(tx.createdAt).toISOString(),
+    ]);
+    const csv = [headers, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `staff-coin-incentives-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    showToast("Coin incentives CSV exported");
+  };
+
+  const openOrderDetails = async (orderId?: string) => {
+    if (!orderId) {
+      showToast("Order reference not available");
+      return;
+    }
+
+    setIsOrderModalOpen(true);
+    setIsOrderLoading(true);
+    setSelectedOrder(null);
+
+    try {
+      if (ordersIndex[orderId]) {
+        setSelectedOrder(ordersIndex[orderId]);
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/orders/admin/all`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to load order list");
+
+      const json = await res.json();
+      const orders = json?.data?.orders || [];
+      const nextIndex: Record<string, any> = {};
+      for (const order of orders) {
+        if (order?.id) nextIndex[order.id] = order;
+      }
+      setOrdersIndex((prev) => ({ ...prev, ...nextIndex }));
+      setSelectedOrder(nextIndex[orderId] || null);
+      if (!nextIndex[orderId]) showToast("Order details not found");
+    } catch (err: any) {
+      showToast(err.message || "Failed to load order details");
+    } finally {
+      setIsOrderLoading(false);
+    }
+  };
+
+  const getOrderStatusClass = (status?: string) => {
+    if (status === "DELIVERED") return "bg-green-500/10 text-green-500 dark:text-green-400";
+    if (status === "READY") return "bg-blue-500/10 text-blue-500 dark:text-blue-400";
+    if (status === "PAID") return "bg-purple-500/10 text-purple-500 dark:text-purple-400";
+    if (status === "CANCELLED") return "bg-red-500/10 text-red-500 dark:text-red-400";
+    return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400";
+  };
+
+  const getOrderTimelineSteps = (order: any) => {
+    const statusRank: Record<string, number> = {
+      PENDING: 0,
+      PAID: 1,
+      READY: 2,
+      DELIVERED: 3,
+      CANCELLED: 0,
+    };
+    const rank = statusRank[order?.status || "PENDING"] ?? 0;
+
+    return [
+      { key: "CREATED", label: "Created", time: order?.createdAt, reached: true },
+      { key: "PAID", label: "Paid", time: order?.paidAt, reached: rank >= 1 || !!order?.paidAt },
+      { key: "READY", label: "Ready", time: order?.readyAt, reached: rank >= 2 || !!order?.readyAt },
+      { key: "DELIVERED", label: "Delivered", time: order?.deliveredAt, reached: rank >= 3 || !!order?.deliveredAt },
+    ];
+  };
+
+  const copyOrderId = async () => {
+    if (!selectedOrder?.id) return;
+    try {
+      await navigator.clipboard.writeText(selectedOrder.id);
+      showToast("Order ID copied");
+    } catch {
+      showToast("Failed to copy Order ID");
+    }
+  };
+
+  const jumpToTransactionsTab = () => {
+    setActiveTab("Transactions");
+    setIsOrderModalOpen(false);
+    showToast("Opened transactions tab");
+  };
+
+  const applyCoinDatePreset = (preset: string) => {
+    setCoinDatePreset(preset);
+    if (preset === "ALL") {
+      setCoinDateFrom("");
+      setCoinDateTo("");
+      return;
+    }
+
+    const today = new Date();
+    const from = new Date(today);
+    if (preset === "TODAY") {
+      // Keep same day for both boundaries.
+    } else if (preset === "7D") {
+      from.setDate(today.getDate() - 6);
+    } else if (preset === "30D") {
+      from.setDate(today.getDate() - 29);
+    }
+
+    setCoinDateFrom(from.toISOString().slice(0, 10));
+    setCoinDateTo(today.toISOString().slice(0, 10));
+  };
+
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -180,6 +322,23 @@ export default function StaffDashboardPage() {
       }
     } catch (err) {
       console.error("Fetch transactions failed:", err);
+    }
+  };
+
+  const fetchCoinIncentives = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const query = new URLSearchParams({ page: "1", limit: "100" });
+      if (coinDateFrom) query.append("createdFrom", coinDateFrom);
+      if (coinDateTo) query.append("createdTo", coinDateTo);
+      const res = await fetch(`${API_BASE}/staff/incentives/coin-orders?${query.toString()}`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (res.ok) {
+        const json = await res.json();
+        setCoinIncentives(json.data || json);
+      }
+    } catch (err) {
+      console.error("Fetch coin incentives failed:", err);
     }
   };
 
@@ -230,13 +389,13 @@ export default function StaffDashboardPage() {
 
   const loadTabData = async (tab: string) => {
     if (tab === "Overview") {
-      await Promise.all([fetchCustomers(), fetchEarnings(), fetchStaffStats(), fetchLeaderboard(), fetchCurrentUser()]);
+      await Promise.all([fetchCustomers(), fetchEarnings(), fetchCoinIncentives(), fetchStaffStats(), fetchLeaderboard(), fetchCurrentUser()]);
     } else if (tab === "Customers") {
       await fetchCustomers();
     } else if (tab === "Transactions") {
       await fetchTransactions();
     } else if (tab === "Earnings") {
-      await Promise.all([fetchEarnings(), fetchStaffStats()]);
+      await Promise.all([fetchEarnings(), fetchCoinIncentives(), fetchStaffStats()]);
     } else if (tab === "Profile") {
       await fetchCurrentUser();
     }
@@ -257,11 +416,18 @@ export default function StaffDashboardPage() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (!isLoading && activeTab === "Earnings") {
+      fetchCoinIncentives();
+    }
+  }, [isLoading, activeTab, coinDateFrom, coinDateTo]);
+
   const refetchCustomers = async () => {
     await loadTabData(activeTab);
   };
 
   const totalCommission = earnings.reduce((acc, curr) => acc + curr.amount, 0);
+  const visibleCoinIncentiveTotal = coinIncentives.reduce((acc, tx) => acc + Number(tx.amount || 0), 0);
 
   const sidebarItems = [
     { id: "Overview", name: "Overview", icon: LineChart },
@@ -331,7 +497,7 @@ export default function StaffDashboardPage() {
             </div>
           </header>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
+          <div className="grid md:grid-cols-4 gap-6 mb-10">
             <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/10 border border-blue-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-blue-500/10">
               <p className="text-blue-400/80 text-xs font-bold uppercase tracking-widest mb-1">Total Customers</p>
               <h2 className="text-4xl font-black text-text-primary tracking-tight">{stats?.customersCount ?? customers.length}</h2>
@@ -339,6 +505,11 @@ export default function StaffDashboardPage() {
             <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/10 border border-green-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-green-500/10">
               <p className="text-green-400/80 text-xs font-bold uppercase tracking-widest mb-1">Total Commissions</p>
               <h2 className="text-4xl font-black text-green-500 dark:text-green-400 tracking-tight">{formatCurrency(stats?.totalCommission ?? totalCommission)}</h2>
+            </div>
+            <div className="bg-gradient-to-br from-purple-600/20 to-fuchsia-600/10 border border-purple-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-purple-500/10">
+              <p className="text-purple-400/80 text-xs font-bold uppercase tracking-widest mb-1">Coin Incentives</p>
+              <h2 className="text-3xl font-black text-purple-400 tracking-tight">{formatCurrency(stats?.coinOrderIncentiveTotal ?? 0)}</h2>
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mt-1">{stats?.coinOrderIncentiveCount ?? 0} Orders</p>
             </div>
             <div className="bg-gradient-to-br from-gold-600/20 to-yellow-600/10 border border-gold-500/20 p-6 rounded-2xl shadow-lg ring-1 ring-gold-500/10">
               <p className="text-gold-400/80 text-xs font-bold uppercase tracking-widest mb-1">Role Status</p>
@@ -588,7 +759,119 @@ export default function StaffDashboardPage() {
 
             {activeTab === "Earnings" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <div className="bg-bg-surface border border-gold-500/10 rounded-2xl p-4 mb-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: "ALL", label: "All Time" },
+                        { id: "TODAY", label: "Today" },
+                        { id: "7D", label: "Last 7 Days" },
+                        { id: "30D", label: "Last 30 Days" }
+                      ].map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => applyCoinDatePreset(preset.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${coinDatePreset === preset.id ? "bg-purple-500 text-white" : "bg-bg-app text-text-secondary border border-gold-500/10 hover:text-text-primary"}`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                      <input
+                        type="date"
+                        value={coinDateFrom}
+                        onChange={(e) => {
+                          setCoinDatePreset("CUSTOM");
+                          setCoinDateFrom(e.target.value);
+                        }}
+                        className="bg-bg-app border border-gold-500/10 rounded-lg px-3 py-1.5 text-xs text-text-primary"
+                      />
+                      <span className="text-[10px] text-text-secondary text-center">to</span>
+                      <input
+                        type="date"
+                        value={coinDateTo}
+                        onChange={(e) => {
+                          setCoinDatePreset("CUSTOM");
+                          setCoinDateTo(e.target.value);
+                        }}
+                        className="bg-bg-app border border-gold-500/10 rounded-lg px-3 py-1.5 text-xs text-text-primary"
+                      />
+                      <button
+                        onClick={() => applyCoinDatePreset("ALL")}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-bg-app border border-gold-500/10 text-text-secondary hover:text-text-primary transition-all"
+                      >
+                        Clear Range
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                  <div className="bg-bg-surface border border-gold-500/10 rounded-2xl p-4">
+                    <p className="text-[10px] text-text-secondary uppercase tracking-widest font-bold mb-2">Coin Incentive Total (Visible)</p>
+                    <p className="text-2xl font-black text-purple-500 dark:text-purple-400">{formatCurrency(visibleCoinIncentiveTotal)}</p>
+                  </div>
+                  <div className="bg-bg-surface border border-gold-500/10 rounded-2xl p-4">
+                    <p className="text-[10px] text-text-secondary uppercase tracking-widest font-bold mb-2">Coin Incentive Orders (Visible)</p>
+                    <p className="text-2xl font-black text-text-primary">{coinIncentives.length}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={handleExportCoinIncentivesCsv}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gold-500/20 text-xs font-bold text-text-secondary hover:text-text-primary hover:bg-gold-500/10 transition-all"
+                  >
+                    <Download className="w-4 h-4" /> Export CSV
+                  </button>
+                </div>
+
+                <div className="bg-bg-surface/30 border border-gold-500/10 rounded-2xl overflow-x-auto mb-5">
+                  <div className="px-4 py-3 border-b border-gold-500/10 bg-bg-app/40">
+                    <h4 className="text-sm font-bold text-text-primary">Coin Incentive Credits</h4>
+                  </div>
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-bg-app text-xs text-text-secondary uppercase tracking-wider">
+                        <th className="p-4">Customer</th>
+                        <th className="p-4">Order Ref</th>
+                        <th className="p-4">Amount</th>
+                        <th className="p-4 text-right">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gold-500/5">
+                      {coinIncentives.map((tx) => (
+                        <tr key={tx.id}>
+                          <td className="p-4">
+                            <p className="text-text-primary text-sm font-medium">{tx.performedBy?.name || "Customer"}</p>
+                            <p className="text-[10px] text-text-secondary">{tx.performedBy?.email || "-"}</p>
+                          </td>
+                          <td className="p-4 text-text-secondary text-xs font-mono">
+                            {tx.entityId ? (
+                              <button
+                                onClick={() => openOrderDetails(tx.entityId)}
+                                className="text-blue-500 hover:text-blue-400 underline underline-offset-2"
+                              >
+                                {tx.entityId}
+                              </button>
+                            ) : "-"}
+                          </td>
+                          <td className="p-4 text-purple-500 dark:text-purple-400 font-bold">+{formatCurrency(tx.amount)}</td>
+                          <td className="p-4 text-right text-text-secondary text-sm">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                      {coinIncentives.length === 0 && (
+                        <tr><td colSpan={4} className="p-10 text-center text-gray-500">No coin incentive credits yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
                 <div className="bg-emerald-950/30 border border-gold-500/10 rounded-2xl overflow-x-auto">
+                  <div className="px-4 py-3 border-b border-gold-500/10 bg-bg-app/40">
+                    <h4 className="text-sm font-bold text-text-primary">All Commission Earnings</h4>
+                  </div>
                   <table className="w-full text-left">
                     <thead>
                       <tr className="bg-bg-app text-xs text-text-secondary uppercase tracking-wider">
@@ -669,6 +952,134 @@ export default function StaffDashboardPage() {
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
               <span className="text-sm font-medium">{toast}</span>
               <button onClick={() => setToast(null)}><X className="w-4 h-4 text-text-secondary hover:text-text-primary" /></button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isOrderModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-5"
+              onClick={() => setIsOrderModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 12 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 12 }}
+                className="w-full max-w-xl bg-bg-surface border border-gold-500/20 rounded-2xl p-5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-text-primary">Order Details</h3>
+                  <button onClick={() => setIsOrderModalOpen(false)} className="text-text-secondary hover:text-text-primary"><X className="w-4 h-4" /></button>
+                </div>
+                {isOrderLoading ? (
+                  <div className="py-10 flex items-center justify-center text-text-secondary">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading order...
+                  </div>
+                ) : selectedOrder ? (
+                  <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10">
+                        <p className="text-text-secondary text-xs mb-1">Order ID</p>
+                        <p className="text-text-primary font-mono break-all mb-2">{selectedOrder.id}</p>
+                        <button onClick={copyOrderId} className="px-2 py-1 rounded-md border border-gold-500/20 text-xs text-text-secondary hover:text-text-primary hover:bg-gold-500/10 transition-all">
+                          Copy Order ID
+                        </button>
+                      </div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10">
+                        <p className="text-text-secondary text-xs mb-1">Status</p>
+                        <span className={`inline-flex px-2 py-1 text-xs rounded font-bold uppercase tracking-wider ${getOrderStatusClass(selectedOrder.status)}`}>
+                          {selectedOrder.status}
+                        </span>
+                      </div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10"><p className="text-text-secondary text-xs mb-1">Customer</p><p className="text-text-primary">{selectedOrder.user?.name || "-"}</p></div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10"><p className="text-text-secondary text-xs mb-1">Product</p><p className="text-text-primary">{selectedOrder.product?.name || "-"}</p></div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10"><p className="text-text-secondary text-xs mb-1">Quantity</p><p className="text-text-primary">{selectedOrder.quantity || 0}</p></div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10"><p className="text-text-secondary text-xs mb-1">Total</p><p className="text-text-primary font-semibold">{formatCurrency(selectedOrder.total || 0)}</p></div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10"><p className="text-text-secondary text-xs mb-1">Created</p><p className="text-text-primary">{selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : "-"}</p></div>
+                      <div className="bg-bg-app rounded-lg p-3 border border-gold-500/10"><p className="text-text-secondary text-xs mb-1">Expected Delivery</p><p className="text-text-primary">{selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleString() : "-"}</p></div>
+                    </div>
+
+                    <div className="mt-4 bg-bg-app rounded-lg p-4 border border-gold-500/10">
+                      <p className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-3">Order Timeline</p>
+                      <div className="sm:hidden grid grid-cols-1 gap-2">
+                        {getOrderTimelineSteps(selectedOrder).map((step, idx) => (
+                          <motion.div
+                            key={step.key}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.05 }}
+                            className={`rounded-lg p-2 border ${step.reached ? "border-green-500/30 bg-green-500/5" : "border-gold-500/10 bg-bg-surface/40"}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${step.reached ? "bg-green-500/20 text-green-500" : "bg-bg-surface text-text-secondary border border-gold-500/10"}`}>
+                                {idx + 1}
+                              </span>
+                              <p className={`text-[10px] uppercase tracking-wider font-bold ${step.reached ? "text-green-500" : "text-text-secondary"}`}>{step.label}</p>
+                            </div>
+                            <p className="text-[11px] text-text-primary mt-1 ml-7">
+                              {step.time ? new Date(step.time).toLocaleString() : "Pending"}
+                            </p>
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      <div className="hidden sm:flex items-start">
+                        {getOrderTimelineSteps(selectedOrder).map((step, idx, arr) => (
+                          <div key={step.key} className="flex items-start flex-1">
+                            <motion.div
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.22, delay: idx * 0.06 }}
+                              className={`rounded-lg p-2 border w-full min-h-[72px] ${step.reached ? "border-green-500/30 bg-green-500/5" : "border-gold-500/10 bg-bg-surface/40"}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${step.reached ? "bg-green-500/20 text-green-500" : "bg-bg-surface text-text-secondary border border-gold-500/10"}`}>
+                                  {idx + 1}
+                                </span>
+                                <p className={`text-[10px] uppercase tracking-wider font-bold ${step.reached ? "text-green-500" : "text-text-secondary"}`}>{step.label}</p>
+                              </div>
+                              <p className="text-[11px] text-text-primary mt-1 ml-7">
+                                {step.time ? new Date(step.time).toLocaleString() : "Pending"}
+                              </p>
+                            </motion.div>
+                            {idx < arr.length - 1 && (
+                              <motion.div
+                                initial={{ scaleX: 0 }}
+                                animate={{ scaleX: 1 }}
+                                transition={{ duration: 0.2, delay: idx * 0.06 + 0.1 }}
+                                className={`h-[2px] mt-5 mx-2 flex-1 origin-left ${step.reached ? "bg-green-500/40" : "bg-gold-500/10"}`}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary py-6 text-center">Order information unavailable.</p>
+                )}
+                {!isOrderLoading && (
+                  <div className="mt-5 pt-4 border-t border-gold-500/10 flex justify-end gap-2">
+                    <button
+                      onClick={() => setIsOrderModalOpen(false)}
+                      className="px-3 py-2 rounded-lg border border-gold-500/20 text-xs font-bold text-text-secondary hover:text-text-primary transition-all"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={jumpToTransactionsTab}
+                      className="px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold transition-all"
+                    >
+                      Open Full Transaction List
+                    </button>
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

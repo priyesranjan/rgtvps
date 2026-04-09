@@ -1,0 +1,11 @@
+{
+  "loginUrl": "http://localhost:4000/api/auth/login",
+  "loginStatus": 200,
+  "tokenFound": true,
+  "productsStatus": 200,
+  "productId": "cmnpkfzxa0001e6fcaogltqlz",
+  "orderStartStatus": 201,
+  "orderResponseSnippet": "{\"success\":true,\"message\":\"Order initiated successfully\",\"data\":{\"orderId\":\"cmnpn2k1c0004o1fayl1jd2fo\",\"invoiceNo\":17,\"razorpayOrderId\":\"order_SatM6C2Za7zx5l\",\"amount\":7570.5,\"currency\":\"INR\"}}",
+  "razorpayOrderId": "order_SatM6C2Za7zx5l",
+  "razorpayMode": "real"
+}

@@ -25,6 +25,7 @@ export default function ArtisanSection() {
                     src="/images/coins/lakshmi_ganesh.png"
                     alt="Heritage Lakshmi Ganesh Gold Coin"
                     fill
+                    sizes="(max-width: 768px) 80vw, 512px"
                     className="object-contain scale-110 drop-shadow-[0_20px_60px_rgba(212,175,55,0.4)]"
                   />
                   {/* Floating Elements */}

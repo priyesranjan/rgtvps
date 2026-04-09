@@ -12,7 +12,7 @@ import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const navLinks = [
   { name: "About Our Gold", href: "/about" },
-  { name: "Products", href: "/#coins" },
+  { name: "Shop", href: "/shop" },
   { name: "Safety & Legal", href: "/legal/privacy" },
   { name: "Contact Us", href: "/contact" },
 ];
@@ -64,6 +64,9 @@ export default function Navbar() {
               src="/RoyalGoldTrader-Logo.png"
               alt="Royal Gold Traders Logo"
               fill
+              sizes="48px"
+              priority
+              loading="eager"
               className="object-contain transition-transform group-hover:scale-110"
             />
           </div>

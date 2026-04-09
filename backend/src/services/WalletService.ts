@@ -25,6 +25,7 @@ export class WalletService {
     goldAdvanceAmount?: number | Prisma.Decimal;
     profitAmount?: number | Prisma.Decimal;
     referralAmount?: number | Prisma.Decimal;
+    promotionalAmount?: number | Prisma.Decimal;
     referralBalance?: number | Prisma.Decimal;
     staffCommissionBalance?: number | Prisma.Decimal;
   }, tx?: any) {
@@ -41,12 +42,13 @@ export class WalletService {
         goldAdvanceAmount: data.goldAdvanceAmount ? { increment: data.goldAdvanceAmount } : undefined,
         profitAmount: data.profitAmount ? { increment: data.profitAmount } : undefined,
         referralAmount: data.referralAmount ? { increment: data.referralAmount } : undefined,
+        promotionalAmount: data.promotionalAmount ? { increment: data.promotionalAmount } : undefined,
         referralBalance: data.referralBalance ? { increment: data.referralBalance } : undefined,
         staffCommissionBalance: data.staffCommissionBalance ? { increment: data.staffCommissionBalance } : undefined,
       }
     });
 
-    // Precise Sync of totalWithdrawable: sum of all individual balances
+    // Promotional amount is intentionally non-withdrawable.
     const total = new Prisma.Decimal(updated.goldAdvanceAmount)
                     .plus(updated.profitAmount)
                     .plus(updated.referralAmount)

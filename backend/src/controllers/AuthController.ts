@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 import { Role } from "@prisma/client";
 import { z, ZodError } from "zod";
+import { SMSService } from "../lib/sms";
+
+// In-memory OTP session store (use Redis in production)
+const otpSessions = new Map<string, { sessionId: string; expiresAt: number }>();
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name is too short"),
@@ -11,6 +15,7 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
   role: z.nativeEnum(Role).optional(),
   referredBy: z.string().optional().nullable(),
+  inviteCode: z.string().optional().nullable(),
   staffId: z.string().optional().nullable(),
   contactNo: z.string().regex(/^(\+91|91|0)?[6-9]\d{9}$/, "Invalid Indian mobile number"),
   aadharNo: z.string().length(12, "Aadhar must be 12 digits").optional().nullable(),
@@ -32,13 +37,25 @@ export class AuthController {
 
       const {
         name, email, password, role, referredBy: rawReferredBy,
-        staffId: rawStaffId, contactNo, aadharNo, pan,
+        inviteCode: rawInviteCode, staffId: rawStaffId, contactNo, aadharNo, pan,
         address, photo, gender, dob, initialGoldAdvanceAmount
       } = validatedData;
 
       let finalRole = role || Role.CUSTOMER;
       let finalStaffId = rawStaffId === "" ? null : rawStaffId;
-      const referredBy = rawReferredBy === "" ? null : rawReferredBy;
+      const inviteCode = rawInviteCode === "" ? null : rawInviteCode;
+      let referredBy = rawReferredBy === "" ? null : rawReferredBy;
+
+      if (inviteCode && !referredBy) {
+        const referrer = await prisma.user.findUnique({
+          where: { inviteCode },
+          select: { id: true },
+        });
+        if (!referrer) {
+          return res.status(400).json({ error: "Invalid invite code" });
+        }
+        referredBy = referrer.id;
+      }
 
       // ── Permissions Check ──────────────────────────────────────────────────
       const authHeader = req.headers.authorization;
@@ -92,7 +109,7 @@ export class AuthController {
         dob: dob ? new Date(dob) : undefined,
         initialGoldAdvanceAmount: Number(initialGoldAdvanceAmount),
         referredBy: referredBy || undefined,
-        staffId: finalStaffId || "SYSTEM", // Fallback if no staff assigned
+        staffId: finalStaffId || "SYSTEM",
         performedByUserId: creator?.id || "PUBLIC",
         performedByRole: creator?.role || Role.CUSTOMER,
         ipAddress: req.ip
@@ -118,20 +135,38 @@ export class AuthController {
     const { email, password } = req.body;
 
     try {
-      const user: any = await prisma.user.findUnique({
-        where: { email },
-        include: {
-          wallet: true,
-          goldAdvances: { where: { status: "ACTIVE" } }
-        }
-      });
+      // Support login by email, contactNo, or mobile
+      const identity = (email || "").trim();
+      const isPhone = /^[+]?\d{10,13}$/.test(identity.replace(/\s/g, ""));
+
+      const user: any = isPhone
+        ? await prisma.user.findFirst({
+            where: {
+              OR: [
+                { contactNo: identity },
+                { mobile: identity },
+              ],
+            },
+            include: { wallet: true, goldAdvances: { where: { status: "ACTIVE" } } },
+          })
+        : await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: identity },
+                { contactNo: identity },
+                { mobile: identity },
+              ],
+            },
+            include: { wallet: true, goldAdvances: { where: { status: "ACTIVE" } } },
+          });
+
       if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "No account found with this email or mobile number" });
       }
 
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "Incorrect password. Please try again." });
       }
 
       const token = jwt.sign(
@@ -148,11 +183,13 @@ export class AuthController {
         email: user.email,
         role: user.role,
         contactNo: user.contactNo,
+        inviteCode: user.inviteCode,
         goldAdvanceAmount: totalGoldAdvanceAmount,
         wallet: {
           goldAdvanceAmount: Number(user.wallet?.goldAdvanceAmount || 0),
           profitAmount: Number(user.wallet?.profitAmount || 0),
           referralAmount: Number(user.wallet?.referralAmount || 0),
+          promotionalAmount: Number(user.wallet?.promotionalAmount || 0),
           totalWithdrawable: Number(user.wallet?.totalWithdrawable || 0),
         }
       };
@@ -183,6 +220,133 @@ export class AuthController {
       res.json(user);
     } catch (error: any) {
       res.status(500).json({ error: (error as Error).message });
+    }
+  }
+
+  static async lookupInvite(req: Request, res: Response) {
+    const { code } = req.params;
+    if (!code) return res.status(400).json({ error: "Invite code is required" });
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { inviteCode: code },
+        select: { id: true, name: true, inviteCode: true }
+      });
+
+      if (!user) return res.status(404).json({ error: "Invite not found" });
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ error: (error as Error).message });
+    }
+  }
+
+  /* ─── OTP Login ─── */
+  static async sendOTP(req: Request, res: Response) {
+    const { mobile } = req.body;
+    if (!mobile) return res.status(400).json({ error: "Mobile number is required" });
+
+    const cleanMobile = mobile.replace(/\D/g, "").replace(/^(91|0)/, "");
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      return res.status(400).json({ error: "Enter a valid 10-digit Indian mobile number" });
+    }
+
+    try {
+      // Check if user exists with this mobile
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { contactNo: { contains: cleanMobile } },
+            { mobile: { contains: cleanMobile } },
+          ],
+        },
+      });
+      if (!user) {
+        return res.status(404).json({ error: "No account found with this mobile number. Please contact admin." });
+      }
+
+      const sessionId = await SMSService.sendOTP(cleanMobile);
+      // Store session with 10 min expiry
+      otpSessions.set(cleanMobile, { sessionId, expiresAt: Date.now() + 10 * 60 * 1000 });
+
+      res.json({ success: true, message: "OTP sent to your mobile number" });
+    } catch (error: any) {
+      console.error("OTP send error:", error);
+      res.status(500).json({ error: error.message || "Failed to send OTP" });
+    }
+  }
+
+  static async verifyOTP(req: Request, res: Response) {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) return res.status(400).json({ error: "Mobile and OTP are required" });
+
+    const cleanMobile = mobile.replace(/\D/g, "").replace(/^(91|0)/, "");
+    const session = otpSessions.get(cleanMobile);
+
+    if (!session) {
+      return res.status(400).json({ error: "OTP expired or not requested. Please send OTP again." });
+    }
+    if (Date.now() > session.expiresAt) {
+      otpSessions.delete(cleanMobile);
+      return res.status(400).json({ error: "OTP has expired. Please request a new one." });
+    }
+
+    try {
+      const isValid = await SMSService.verifyOTP(session.sessionId, otp);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid OTP. Please check and try again." });
+      }
+
+      otpSessions.delete(cleanMobile);
+
+      // Find user and generate token
+      const user: any = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { contactNo: { contains: cleanMobile } },
+            { mobile: { contains: cleanMobile } },
+          ],
+        },
+        include: {
+          wallet: true,
+          goldAdvances: { where: { status: "ACTIVE" } },
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET!,
+        { expiresIn: (process.env.JWT_EXPIRES_IN || "7d") as any }
+      );
+
+      const totalGoldAdvanceAmount = user.goldAdvances?.reduce(
+        (sum: number, adv: any) => sum + Number(adv.advanceAmount), 0
+      ) || 0;
+
+      const safeUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        contactNo: user.contactNo,
+        inviteCode: user.inviteCode,
+        goldAdvanceAmount: totalGoldAdvanceAmount,
+        wallet: {
+          goldAdvanceAmount: Number(user.wallet?.goldAdvanceAmount || 0),
+          profitAmount: Number(user.wallet?.profitAmount || 0),
+          referralAmount: Number(user.wallet?.referralAmount || 0),
+          promotionalAmount: Number(user.wallet?.promotionalAmount || 0),
+          totalWithdrawable: Number(user.wallet?.totalWithdrawable || 0),
+        },
+      };
+
+      res.json({ token, user: safeUser });
+    } catch (error: any) {
+      console.error("OTP verify error:", error);
+      res.status(500).json({ error: error.message || "OTP verification failed" });
     }
   }
 }

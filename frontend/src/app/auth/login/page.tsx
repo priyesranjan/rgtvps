@@ -26,9 +26,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
-  // Auto-redirect if already logged in
+  // Auto-redirect if already logged in + restore remembered email
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userJson = localStorage.getItem("user");
@@ -42,6 +43,12 @@ export default function LoginPage() {
       } catch (e) {
         localStorage.clear();
       }
+    }
+    // Restore remembered login
+    const saved = localStorage.getItem("rgt_remember");
+    if (saved) {
+      setEmail(saved);
+      setRememberMe(true);
     }
   }, [router]);
 
@@ -107,6 +114,13 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      // Save or clear remembered identity
+      if (rememberMe) {
+        localStorage.setItem("rgt_remember", email);
+      } else {
+        localStorage.removeItem("rgt_remember");
+      }
+
       // Redirect based on role
       const role = data.user.role;
       if (role === "CUSTOMER") router.push("/dashboard/customer");
@@ -156,6 +170,8 @@ export default function LoginPage() {
                 alt="Royal Gold Trader Logo"
                 width={96}
                 height={96}
+                priority
+                loading="eager"
                 className="w-24 h-24 object-contain"
               />
             </div>
@@ -165,23 +181,21 @@ export default function LoginPage() {
             <p className="text-text-secondary mt-2 text-sm">Please sign in to access your account.</p>
           </div>
 
-          {/* Login Method Tabs (Hidden for now) */}
-          {/* 
+          {/* Login Method Tabs */}
           <div className="flex bg-bg-app/50 p-1 rounded-xl border border-gold-500/10 mb-6 relative z-10">
             <button
               onClick={() => { setLoginMethod("password"); setOtpSent(false); setError(null); }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${loginMethod === "password" ? "bg-gold-500 text-bg-app" : "text-text-secondary hover:text-text-primary"}`}
+              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${loginMethod === "password" ? "bg-gold-500 text-bg-app shadow-md" : "text-text-secondary hover:text-text-primary"}`}
             >
               Password
             </button>
             <button
               onClick={() => { setLoginMethod("otp"); setError(null); }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${loginMethod === "otp" ? "bg-gold-500 text-bg-app" : "text-text-secondary hover:text-text-primary"}`}
+              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${loginMethod === "otp" ? "bg-gold-500 text-bg-app shadow-md" : "text-text-secondary hover:text-text-primary"}`}
             >
-              OTP Secure
+              OTP Login
             </button>
           </div>
-          */}
 
 
           <AnimatePresence mode="wait">
@@ -198,18 +212,20 @@ export default function LoginPage() {
             )}
           </AnimatePresence>
 
-          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+          <form onSubmit={loginMethod === "otp" ? (otpSent ? handleVerifyOTP : (e) => { e.preventDefault(); handleSendOTP(); }) : handleSubmit} className="space-y-4 relative z-10">
             {loginMethod === "password" ? (
               <>
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-text-secondary ml-1">Identity (Email or Mobile)</label>
+                  <label className="text-xs font-medium text-text-secondary ml-1">Email or Mobile Number</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
                     <input
                       type="text"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email or Mobile"
+                      onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                      placeholder="Enter email or mobile"
+                      autoFocus
+                      autoComplete="username"
                       className="w-full bg-bg-app/50 border border-gold-500/20 focus:border-gold-500/60 text-text-primary rounded-xl py-3.5 pl-12 pr-4 outline-none transition-all placeholder:text-gray-600"
                       required
                     />
@@ -218,15 +234,16 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between ml-1">
-                    <label className="text-xs font-medium text-text-secondary">Vault Password</label>
+                    <label className="text-xs font-medium text-text-secondary">Password</label>
                   </div>
                   <div className="relative">
                     <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                      placeholder="Enter password"
+                      autoComplete="current-password"
                       className="w-full bg-bg-app/50 border border-gold-500/20 focus:border-gold-500/60 text-text-primary rounded-xl py-3.5 pl-12 pr-12 outline-none transition-all placeholder:text-gray-600"
                       required
                     />
@@ -239,6 +256,17 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Remember Me */}
+                <label className="flex items-center gap-2 cursor-pointer select-none ml-1">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gold-500/30 bg-bg-app accent-gold-500"
+                  />
+                  <span className="text-xs text-text-secondary">Remember me</span>
+                </label>
               </>
             ) : (
               <div className="space-y-4">
@@ -299,7 +327,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <span className="relative z-10">
-                    Login
+                    {loginMethod === "otp" ? (otpSent ? "Verify OTP" : "Send OTP") : "Login"}
                   </span>
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 </>

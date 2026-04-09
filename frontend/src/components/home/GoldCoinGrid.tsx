@@ -79,6 +79,7 @@ function CoinCard({ weight, purity, description, image, delay, category }: CoinC
               src={image} 
               alt={`${weight} ${purity} Gold Coin`}
               fill
+              sizes="(max-width: 768px) 80vw, 320px"
               className="object-contain drop-shadow-[0_20px_50px_rgba(212,175,55,0.3)]"
             />
         </div>

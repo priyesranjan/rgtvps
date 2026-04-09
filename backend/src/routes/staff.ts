@@ -10,5 +10,6 @@ staffRouter.get("/stats", requireAuth, requireRole(Role.STAFF), StaffController.
 staffRouter.get("/customers", requireAuth, requireRole(Role.STAFF), StaffController.getCustomers);
 staffRouter.get("/earnings", requireAuth, requireRole(Role.STAFF), StaffController.getEarnings);
 staffRouter.get("/transactions", requireAuth, requireRole(Role.STAFF), StaffController.getCustomerTransactions);
+staffRouter.get("/incentives/coin-orders", requireAuth, requireRole(Role.STAFF), StaffController.getCoinOrderIncentives);
 staffRouter.get("/transactions/:userId", requireAuth, requireRole(Role.STAFF), StaffController.getSpecificCustomerTransactions);
 staffRouter.patch("/customers/:userId", requireAuth, requireRole(Role.STAFF), StaffController.updateCustomer);

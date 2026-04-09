@@ -1,16 +1,34 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 class PaymentService {
-  private razorpay: Razorpay;
+  private razorpay: Razorpay | null;
+  private readonly isMockMode: boolean;
 
   constructor() {
+    const keyId = process.env.RAZORPAY_KEY_ID || "";
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || "";
+
+    const hasConfiguredRazorpayKeys =
+      /^rzp_(live|test)_/.test(keyId) &&
+      keySecret.length >= 10 &&
+      !keyId.includes("dummy") &&
+      !keySecret.includes("dummy");
+
+    this.isMockMode = process.env.MOCK_RAZORPAY === "true" && !hasConfiguredRazorpayKeys;
+
+    if (this.isMockMode) {
+      this.razorpay = null;
+      return;
+    }
+
     this.razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID!,
-      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+      key_id: keyId,
+      key_secret: keySecret,
     });
   }
 
@@ -21,13 +39,35 @@ class PaymentService {
    * @returns Razorpay Order object
    */
   async createRazorpayOrder(amount: number, receipt: string) {
+    if (this.isMockMode) {
+      return {
+        id: `mock_order_${receipt}`,
+        amount: Math.round(amount * 100),
+        currency: "INR",
+        receipt,
+        status: "created",
+      };
+    }
+
+    if (!this.razorpay) {
+      const err = new Error("Razorpay is not configured");
+      (err as Error & { status?: number }).status = 400;
+      throw err;
+    }
+
     const options = {
       amount: Math.round(amount * 100), // Convert INR to Paise
       currency: "INR",
       receipt: receipt,
     };
 
-    return await this.razorpay.orders.create(options);
+    try {
+      return await this.razorpay.orders.create(options);
+    } catch (error) {
+      const err = new Error("Unable to create payment order. Please verify Razorpay keys.");
+      (err as Error & { status?: number }).status = 400;
+      throw err;
+    }
   }
 
   /**
@@ -42,6 +82,14 @@ class PaymentService {
     razorpayPaymentId: string,
     razorpaySignature: string
   ): boolean {
+    if (this.isMockMode) {
+      return (
+        razorpayOrderId.startsWith("mock_order_") &&
+        razorpayPaymentId.startsWith("mock_payment_") &&
+        razorpaySignature === "mock_signature"
+      );
+    }
+
     const secret = process.env.RAZORPAY_KEY_SECRET!;
     const body = razorpayOrderId + "|" + razorpayPaymentId;
 

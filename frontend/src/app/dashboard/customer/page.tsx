@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wallet, TrendingUp, ArrowDownRight, ArrowUpRight, LogOut,
   Download, Plus, Settings, LineChart, ShieldCheck, X,
-  Menu, CheckCircle2, Clock, FileText, Loader2, Check, Info, ArrowRight, User
+  Menu, CheckCircle2, Clock, FileText, Loader2, Check, Info, ArrowRight, User,
+  ShoppingBag, Package, Truck, Eye
 } from "lucide-react";
 import { downloadInvoicePDF } from "@/lib/downloadInvoice";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -22,6 +23,7 @@ import {
   Withdrawal as WithdrawalType,
   GoldAdvance as GoldAdvanceType
 } from "@/types/dashboard";
+import { Coins, Ban } from "lucide-react";
 
 // Dynamic import prevents SSR which causes -1/-1 dimension bug in Recharts
 const YieldChart = dynamic(() => import("@/components/ui/YieldChart"), {
@@ -35,7 +37,7 @@ const YieldChart = dynamic(() => import("@/components/ui/YieldChart"), {
 
 
 
-const navItems = [
+const digitalNavItems = [
   { label: "Portfolio", icon: Wallet },
   { label: "Transactions", icon: TrendingUp },
   { label: "Withdrawals", icon: ArrowUpRight },
@@ -43,7 +45,61 @@ const navItems = [
   { label: "Profile", icon: User },
 ];
 
+const physicalNavItems = [
+  { label: "Orders", icon: ShoppingBag },
+  { label: "Transactions", icon: TrendingUp },
+  { label: "Withdrawals", icon: ArrowUpRight },
+  { label: "Invoices", icon: FileText },
+  { label: "Profile", icon: User },
+];
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+function notifyReadyOrderDesktop(invoiceNo: number) {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+
+  try {
+    const n = new Notification("Order Ready for Dispatch", {
+      body: `Your order #${invoiceNo} is READY. Track it in your dashboard.`,
+      icon: "/RoyalGoldTrader-Logo.png",
+      tag: `order-ready-${invoiceNo}`,
+    });
+
+    n.onclick = () => {
+      window.focus();
+      window.location.href = "/dashboard/customer";
+    };
+  } catch {
+    // Silently ignore browser notification errors.
+  }
+}
+
+function getDeliveryCountdown(expectedDeliveryDate?: string | Date, nowMs: number = Date.now()) {
+  if (!expectedDeliveryDate) {
+    return { expired: false, text: "" };
+  }
+
+  const targetMs = new Date(expectedDeliveryDate).getTime();
+  const diff = targetMs - nowMs;
+
+  if (diff <= 0) {
+    return { expired: true, text: "00d 00h 00m 00s" };
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / (24 * 60 * 60));
+  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return {
+    expired: false,
+    text: `${pad(days)}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`,
+  };
+}
 
 /* ─── Toast ─── */
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
@@ -312,7 +368,20 @@ export default function CustomerDashboardPage() {
   const [transactionsData, setTransactionsData] = useState<TransactionType[]>([]);
   const [withdrawalsList, setWithdrawalsList] = useState<WithdrawalType[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [nowTick, setNowTick] = useState(Date.now());
+  const [goldMode, setGoldMode] = useState<"DIGITAL" | "PHYSICAL">("DIGITAL");
   const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedOrdersRef = useRef(false);
+  const previousOrderStatusesRef = useRef<Record<string, string>>({});
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchBaseData = async () => {
     const token = localStorage.getItem("token");
@@ -320,9 +389,14 @@ export default function CustomerDashboardPage() {
     if (!token || !userJson) return null;
     const user = JSON.parse(userJson);
     try {
-      const userRes = await apiClient.get(`/users/${user.id}`, token || undefined);
+      const [userRes, settingsRes] = await Promise.all([
+        apiClient.get(`/users/${user.id}`, token || undefined),
+        apiClient.get(`/settings`, token || undefined),
+      ]);
       const data = userRes.data || userRes;
       setUserData(data);
+      const mode = (settingsRes?.goldMode || settingsRes?.data?.goldMode) === "PHYSICAL" ? "PHYSICAL" : "DIGITAL";
+      setGoldMode(mode);
       return data;
     } catch (err: any) {
       handleApiError(err);
@@ -367,6 +441,42 @@ export default function CustomerDashboardPage() {
       setWithdrawalsList(res.data || res);
     } catch (err: any) {
       console.error("Fetch withdrawals failed:", err);
+    }
+  };
+
+  const fetchOrders = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const res = await apiClient.get(`/orders/my`, token || undefined);
+      const nextOrders = res.data?.orders || res.orders || [];
+
+      if (hasLoadedOrdersRef.current) {
+        const newlyReadyOrders = nextOrders.filter((order: any) => {
+          const prevStatus = previousOrderStatusesRef.current[order.id];
+          return prevStatus && prevStatus !== "READY" && order.status === "READY";
+        });
+
+        if (newlyReadyOrders.length === 1) {
+          const readyOrder = newlyReadyOrders[0];
+          showToast(`Order #${readyOrder.invoiceNo} is now READY for dispatch.`);
+          notifyReadyOrderDesktop(readyOrder.invoiceNo);
+        } else if (newlyReadyOrders.length > 1) {
+          showToast(`${newlyReadyOrders.length} orders are now READY for dispatch.`);
+          newlyReadyOrders.forEach((order: any) => notifyReadyOrderDesktop(order.invoiceNo));
+        }
+      }
+
+      const statusMap: Record<string, string> = {};
+      nextOrders.forEach((order: any) => {
+        statusMap[order.id] = order.status;
+      });
+
+      previousOrderStatusesRef.current = statusMap;
+      hasLoadedOrdersRef.current = true;
+      setOrders(nextOrders);
+    } catch (err: any) {
+      console.error("Fetch orders failed:", err);
     }
   };
 
@@ -424,6 +534,9 @@ export default function CustomerDashboardPage() {
       case "Invoices":
         await Promise.all([fetchPortfolioData(userOverride), fetchWithdrawalHistory()]);
         break;
+      case "Orders":
+        await fetchOrders();
+        break;
       case "Referrals":
         await fetchReferralData();
         break;
@@ -435,6 +548,7 @@ export default function CustomerDashboardPage() {
   };
 
   // ── Initialization ──
+  const initDoneRef = useRef(false);
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
@@ -443,18 +557,63 @@ export default function CustomerDashboardPage() {
 
       const u = await fetchBaseData();
       if (u) {
-        await loadTabData(activeTab, u);
+        // Fetch orders + portfolio in parallel on first load so data is ready
+        await Promise.all([
+          fetchOrders(),
+          fetchPortfolioData(u),
+          fetchWithdrawalHistory(),
+        ]);
       }
       setIsLoading(false);
+      initDoneRef.current = true;
     };
     init();
   }, []);
 
+  // Set default tab after goldMode resolves (runs once after init)
+  const hasSetDefaultTab = useRef(false);
+  useEffect(() => {
+    if (!initDoneRef.current || hasSetDefaultTab.current) return;
+    hasSetDefaultTab.current = true;
+    const defaultTab = goldMode === "PHYSICAL" ? "Orders" : "Portfolio";
+    setActiveTab(defaultTab);
+  }, [goldMode, isLoading]);
+
   // ── Tab Refresh ──
   useEffect(() => {
-    if (isLoading) return;
-    
+    if (!initDoneRef.current) return;
     loadTabData(activeTab);
+  }, [activeTab]);
+
+  // ── Auto-refresh on window focus (e.g. returning from shop/payment) ──
+  useEffect(() => {
+    const onFocus = () => {
+      if (!initDoneRef.current) return;
+      fetchOrders();
+      fetchBaseData();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "Orders") return;
+
+    if (typeof window !== "undefined" && "Notification" in window) {
+      const askedKey = "rgt_order_ready_notification_prompted";
+      const alreadyAsked = localStorage.getItem(askedKey) === "true";
+      if (!alreadyAsked && Notification.permission === "default") {
+        Notification.requestPermission().finally(() => {
+          localStorage.setItem(askedKey, "true");
+        });
+      }
+    }
+
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // Derive Chart Data - Placeholder if no profit data directly accessible yet
@@ -503,6 +662,8 @@ export default function CustomerDashboardPage() {
   }
 
   const activeWithdrawal = withdrawalsList.find(w => w.status === "PENDING");
+
+  const navItems = goldMode === "PHYSICAL" ? physicalNavItems : digitalNavItems;
 
   const sidebarItems = [
     ...navItems.map(item => ({
@@ -563,7 +724,9 @@ export default function CustomerDashboardPage() {
                   <h1 className="text-2xl lg:text-3xl font-heading font-bold text-text-primary mb-1">
                     Welcome back, <span className="text-gold-400">{user?.name?.split(" ")[0] || "Customer"}</span>
                   </h1>
-                  <p className="text-text-secondary text-sm font-medium">Your physical gold vault — {activeTab}</p>
+                  <p className="text-text-secondary text-sm font-medium">
+                    {goldMode === "DIGITAL" ? "Your digital gold vault" : "Your physical gold orders"} — {activeTab}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
@@ -687,6 +850,254 @@ export default function CustomerDashboardPage() {
                       }
                     }} />
                   </div>
+                </motion.div>
+              )}
+
+              {/* ORDERS */}
+              {activeTab === "Orders" && (
+                <motion.div key="orders" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-heading font-bold text-text-primary">My Orders</h2>
+                    <a href="/shop"
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-bg-app text-sm font-bold transition-all">
+                      <ShoppingBag className="w-4 h-4" /> Buy Gold
+                    </a>
+                  </div>
+
+                  {/* Order Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    {[
+                      { label: "Total Orders", value: orders.length, color: "text-gold-400", glass: "bg-gold-glass" },
+                      { label: "Paid", value: orders.filter((o: any) => o.status === "PAID").length, color: "text-blue-400", glass: "bg-blue-glass" },
+                      { label: "Ready", value: orders.filter((o: any) => o.status === "READY").length, color: "text-green-400", glass: "bg-green-glass" },
+                      { label: "Delivered", value: orders.filter((o: any) => o.status === "DELIVERED").length, color: "text-purple-400", glass: "bg-blue-glass" },
+                    ].map(({ label, value, color, glass }) => (
+                      <div key={label} className={`${glass} rounded-2xl p-5 border border-white/5 transition-all hover:translate-y-[-2px] flex flex-col justify-between min-h-[100px]`}>
+                        <p className="text-[9px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-1">{label}</p>
+                        <p className={`text-2xl font-heading font-black ${color}`}>{value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Orders List */}
+                  {orders.length === 0 ? (
+                    <div className="bg-bg-surface border border-gold-500/10 rounded-2xl p-16 flex flex-col items-center gap-4">
+                      <Package className="w-16 h-16 text-text-secondary/20" />
+                      <p className="text-text-secondary text-lg">No orders yet</p>
+                      <p className="text-text-secondary/60 text-sm">Visit the shop to buy your first gold coin!</p>
+                      <a href="/shop" className="mt-2 px-6 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-bg-app text-sm font-bold transition-all">
+                        Browse Shop
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order: any) => {
+                        const statusStyles: Record<string, string> = {
+                          PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+                          PAID: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                          READY: "bg-green-500/10 text-green-400 border-green-500/20",
+                          DELIVERED: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                          CANCELLED: "bg-red-500/10 text-red-400 border-red-500/20",
+                        };
+                        const statusIcons: Record<string, any> = {
+                          PENDING: Clock,
+                          PAID: CheckCircle2,
+                          READY: Package,
+                          DELIVERED: Truck,
+                          CANCELLED: X,
+                        };
+                        const StatusIcon = statusIcons[order.status] || Clock;
+                        const product = order.product;
+                        const countdown = getDeliveryCountdown(order.expectedDeliveryDate, nowTick);
+
+                        return (
+                          <motion.div
+                            key={order.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-bg-surface border border-gold-500/10 rounded-2xl overflow-hidden hover:border-gold-500/20 transition-all"
+                          >
+                            <div className="p-5 flex flex-col md:flex-row md:items-center gap-4">
+                              {/* Product Info */}
+                              <div className="flex items-center gap-4 flex-1">
+                                <div className="w-14 h-14 rounded-xl bg-bg-app/50 border border-gold-500/10 flex items-center justify-center shrink-0 overflow-hidden relative">
+                                  {product?.imageUrl ? (
+                                    <img src={product.imageUrl} alt={product?.name} className="w-10 h-10 object-contain" />
+                                  ) : (
+                                    <Package className="w-6 h-6 text-gold-500/40" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h4 className="text-text-primary font-semibold text-sm truncate">
+                                      {product?.name || "Gold Coin"}
+                                    </h4>
+                                    <span className="text-[9px] font-bold text-gold-500 px-1.5 py-0.5 border border-gold-500/20 rounded-full shrink-0">
+                                      {product?.purity || "24K"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-text-secondary">
+                                    <span>Qty: {order.quantity}</span>
+                                    <span>·</span>
+                                    <span>Invoice #{order.invoiceNo}</span>
+                                    <span>·</span>
+                                    <span>{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Amount */}
+                              <div className="text-right shrink-0">
+                                <p className="text-lg font-heading font-bold text-gold-500">
+                                  {formatCurrency(Number(order.total))}
+                                </p>
+                                <div className="flex items-center justify-end gap-1.5 mt-1">
+                                  <StatusIcon className="w-3.5 h-3.5" />
+                                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusStyles[order.status] || statusStyles.PENDING}`}>
+                                    {order.status}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Order Details Bar */}
+                            <div className="px-5 py-3 border-t border-gold-500/5 bg-bg-app/30 flex items-center justify-between text-xs text-text-secondary">
+                              <div className="flex items-center gap-4">
+                                {order.paidAt && (
+                                  <span>Paid: {new Date(order.paidAt).toLocaleDateString("en-IN")}</span>
+                                )}
+                                {order.expectedDeliveryDate && (
+                                  <span className="flex items-center gap-1">
+                                    <Truck className="w-3 h-3" />
+                                    Expected: {new Date(order.expectedDeliveryDate).toLocaleDateString("en-IN")}
+                                  </span>
+                                )}
+                                {(order.status === "PAID" || order.status === "READY" || order.status === "DELIVERED") && (
+                                  <span className="text-[11px] text-purple-300 font-semibold">
+                                    Assigned staff incentive credited: ₹500
+                                  </span>
+                                )}
+                                {(order.status === "PAID" || order.status === "READY") && order.expectedDeliveryDate && (
+                                  <span className={`font-bold tracking-wide ${countdown.expired ? "text-red-400" : "text-gold-400"}`}>
+                                    {countdown.expired ? "Delivery Window Ended" : `Countdown: ${countdown.text}`}
+                                  </span>
+                                )}
+                                {order.deliveredAt && (
+                                  <span className="text-green-400">
+                                    Delivered: {new Date(order.deliveredAt).toLocaleDateString("en-IN")}
+                                  </span>
+                                )}
+                              </div>
+                              {order.status !== "PENDING" && order.status !== "CANCELLED" && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const token = localStorage.getItem("token");
+                                      const res = await fetch(`${API_BASE}/orders/${order.id}/invoice`, {
+                                        headers: { Authorization: `Bearer ${token}` },
+                                      });
+                                      if (!res.ok) throw new Error("Invoice not ready");
+                                      const html = await res.text();
+                                      const printWindow = window.open("", "_blank");
+                                      if (printWindow) {
+                                        printWindow.document.write(html);
+                                        printWindow.document.close();
+                                        printWindow.focus();
+                                        setTimeout(() => printWindow.print(), 500);
+                                      }
+                                    } catch {
+                                      showToast("Invoice not available yet.");
+                                    }
+                                  }}
+                                  className="flex items-center gap-1 text-gold-500 hover:text-gold-400 transition-colors font-medium"
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> Invoice
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Delivery Progress for PAID/READY orders */}
+                            {(order.status === "PAID" || order.status === "READY") && order.expectedDeliveryDate && (
+                              <div className="px-5 py-3 border-t border-gold-500/5">
+                                <div className="flex items-center gap-3 mb-2">
+                                  {[
+                                    { label: "Ordered", done: true },
+                                    { label: "Paid", done: true },
+                                    { label: "Ready", done: order.status === "READY" },
+                                    { label: "Delivered", done: false },
+                                  ].map((s, idx) => (
+                                    <div key={s.label} className="flex items-center gap-1.5 flex-1">
+                                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                                        s.done ? "bg-gold-500 text-black" : "bg-bg-app border border-gold-500/20 text-text-secondary"
+                                      }`}>
+                                        {s.done ? <CheckCircle2 className="w-3 h-3" /> : idx + 1}
+                                      </div>
+                                      <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                                        s.done ? "text-gold-500" : "text-text-secondary/40"
+                                      }`}>{s.label}</span>
+                                      {idx < 3 && (
+                                        <div className={`flex-1 h-0.5 rounded-full ${
+                                          s.done ? "bg-gold-500" : "bg-gold-500/10"
+                                        }`} />
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Token Number & Actions for READY orders */}
+                            {order.status === "READY" && (
+                              <div className="px-5 py-4 border-t border-green-500/10 bg-green-500/5">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                                      <Coins className="w-5 h-5 text-green-400" />
+                                    </div>
+                                    <div>
+                                      <p className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">Pickup Token</p>
+                                      <p className="text-lg font-heading font-black text-green-400 tracking-wider">
+                                        {order.tokenNumber || "Pending"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="bg-bg-surface border border-gold-500/10 rounded-xl px-4 py-2.5 text-center">
+                                      <p className="text-[9px] text-text-secondary uppercase tracking-widest font-bold mb-0.5">Visit Office</p>
+                                      <p className="text-xs text-text-primary font-semibold">Show this token to collect your order</p>
+                                    </div>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm(`Withdraw ₹${Number(order.total).toLocaleString("en-IN")} instead of collecting your order?\n\nThis will cancel the order and credit the amount to your wallet.`)) return;
+                                        try {
+                                          const token = localStorage.getItem("token");
+                                          const res = await fetch(`${API_BASE}/orders/withdraw`, {
+                                            method: "POST",
+                                            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                                            body: JSON.stringify({ orderId: order.id }),
+                                          });
+                                          const data = await res.json();
+                                          if (!res.ok) throw new Error(data.error || "Withdrawal failed");
+                                          showToast(`₹${Number(order.total).toLocaleString("en-IN")} credited to your wallet!`);
+                                          fetchOrders();
+                                          fetchBaseData();
+                                        } catch (err: any) {
+                                          showToast(err.message);
+                                        }
+                                      }}
+                                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-bg-app text-sm font-bold transition-all whitespace-nowrap"
+                                    >
+                                      <ArrowUpRight className="w-4 h-4" /> Withdraw Amount
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </motion.div>
               )}
 

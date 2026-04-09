@@ -12,6 +12,47 @@ class ProductService {
   }
 
   /**
+   * Get all products including inactive (admin)
+   */
+  async getAllProductsAdmin() {
+    return await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  /**
+   * Update a product
+   */
+  async updateProduct(id: string, data: Partial<{
+    name: string;
+    description: string | null;
+    weight: number;
+    purity: string;
+    imageUrl: string | null;
+    stock: number;
+    isActive: boolean;
+  }>) {
+    const updateData: any = { ...data };
+    if (data.weight !== undefined) {
+      updateData.weight = new Prisma.Decimal(data.weight);
+    }
+    return await prisma.product.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  /**
+   * Delete a product (soft delete by setting isActive = false)
+   */
+  async deleteProduct(id: string) {
+    return await prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  /**
    * Get a single product by ID
    */
   async getProductById(id: string) {
@@ -45,6 +86,18 @@ class ProductService {
   async getLatestGoldPrice(): Promise<GoldPrice | null> {
     return await prisma.goldPrice.findFirst({
       orderBy: { timestamp: "desc" },
+    });
+  }
+
+  /**
+   * Admin sets a new live gold price snapshot.
+   */
+  async setGoldPrice(data: { buyPrice: number; sellPrice: number }) {
+    return prisma.goldPrice.create({
+      data: {
+        buyPrice: new Prisma.Decimal(data.buyPrice),
+        sellPrice: new Prisma.Decimal(data.sellPrice),
+      },
     });
   }
 

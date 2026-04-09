@@ -100,22 +100,28 @@ export class ProfitDistributionService {
           await prisma.$transaction(async (tx) => {
             const user = advances[0].user;
             const totalAdvanceAmount = advances.reduce((sum, adv) => sum.plus(adv.advanceAmount.toString()), new Prisma.Decimal(0));
+            const wallet = await tx.wallet.findUnique({
+              where: { userId },
+              select: { promotionalAmount: true }
+            });
+            const promotionalPrincipal = new Prisma.Decimal(wallet?.promotionalAmount || 0);
+            const earningBase = totalAdvanceAmount.plus(promotionalPrincipal);
 
             // Precise Arithmetic with Decimal
             // dailyProfit = (Total * MonthlyRate / 100) / 30
-            const dailyProfit = totalAdvanceAmount
+            const dailyProfit = earningBase
               .mul(profitMonthlyRate)
               .div(100)
               .div(30)
               .toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN);
 
-            const referralReward = totalAdvanceAmount
+            const referralReward = earningBase
               .mul(referralMonthlyRate)
               .div(100)
               .div(30)
               .toDecimalPlaces(2, Prisma.Decimal.ROUND_DOWN);
 
-            const staffCommission = totalAdvanceAmount
+            const staffCommission = earningBase
               .mul(staffMonthlyRate)
               .div(100)
               .div(30)

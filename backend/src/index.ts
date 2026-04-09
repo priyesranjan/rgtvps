@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
@@ -14,13 +14,17 @@ import { referralRouter } from "./routes/referrals";
 import { auditRouter } from "./routes/audit";
 import { uploadRouter } from "./routes/upload";
 import { adminCronRouter } from "./routes/adminCron";
+import orderRouter from "./routes/OrderRoutes";
+import productRouter from "./routes/ProductRoutes";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { Role } from "@prisma/client";
 import { startDailyReturnCron } from "./cron/dailyProfitCron";
 import { SystemSettingController } from "./controllers/SystemSettingController";
 import { FeatureFlagController } from "./controllers/FeatureFlagController";
+import { validateEnvironment } from "./config/env";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+validateEnvironment();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -50,6 +54,8 @@ app.use("/api/referrals", referralRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/admin/cron", adminCronRouter);
+app.use("/api/orders", orderRouter);
+app.use("/api/products", productRouter);
 
 // Serve static files from storage directory
 app.use("/uploads", express.static(path.join(process.cwd(), "storage", "uploads")));
@@ -66,6 +72,32 @@ app.delete("/api/feature-flags/:key", requireAuth, requireRole(Role.SUPERADMIN),
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// Return JSON for unknown API routes instead of Express HTML pages.
+app.use("/api", (_req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: "API route not found",
+  });
+});
+
+// Global error handler to keep API responses JSON-only.
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  const status = typeof err === "object" && err !== null && "status" in err
+    ? Number((err as { status?: number }).status) || 500
+    : 500;
+
+  const message = err instanceof Error ? err.message : "Internal server error";
+
+  if (status >= 500) {
+    console.error("[API ERROR]", err);
+  }
+
+  res.status(status).json({
+    success: false,
+    error: message,
+  });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────

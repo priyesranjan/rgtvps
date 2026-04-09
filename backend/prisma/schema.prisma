@@ -27,9 +27,24 @@ enum TransactionType {
   PROFIT
   REFERRAL
   STAFF_COMMISSION
+  PROMOTIONAL_CREDIT
   GOLD_ADVANCE // Legacy mapping
   DAILY_RETURN // Legacy mapping
   REFERRAL_REWARD // Legacy mapping
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 enum WithdrawalSource {
@@ -49,6 +64,9 @@ enum AuditAction {
   CUSTOMER_CREATED
   GOLD_ADVANCE_DEPOSITED
   GOLD_ADVANCE_WITHDRAWN
+  ORDER_PURCHASED
+  ORDER_READY
+  ORDER_DELIVERED
   STAFF_ASSIGNED
   STAFF_REASSIGNED
   CUSTOMER_UPDATED
@@ -69,6 +87,7 @@ model User {
   email        String   @unique
   password     String
   role         Role     @default(CUSTOMER)
+  inviteCode   String?  @unique
   
   // Professional / Identity Details
   contactNo    String?  @unique
@@ -90,6 +109,7 @@ model User {
   goldAdvances  GoldAdvance[]
   transactions Transaction[]
   withdrawals  WithdrawalRequest[]
+  orders       Order[]
   performedTransactions Transaction[] @relation("PerformedTransactions")
   commissions     StaffCommission[] @relation("StaffCommissions")
   paidCommissions StaffCommission[] @relation("CustomerCommissions")
@@ -117,6 +137,7 @@ model Wallet {
   goldAdvanceAmount      Decimal @default(0) @db.Decimal(15, 2)
   profitAmount           Decimal @default(0) @db.Decimal(15, 2)
   referralAmount         Decimal @default(0) @db.Decimal(15, 2)
+  promotionalAmount      Decimal @default(0) @db.Decimal(15, 2)
   totalWithdrawable      Decimal @default(0) @db.Decimal(15, 2)
   
   // Legacy fields (optional migration path)
@@ -242,6 +263,7 @@ model DailyProfitLog {
 
 model SystemSetting {
   id                        String  @id @default("default")
+  goldMode                  String  @default("DIGITAL") // "DIGITAL" or "PHYSICAL"
   showGST                   Boolean @default(true)
   gstPercentage             Decimal @default(18.0) @db.Decimal(5, 2)
   
@@ -266,4 +288,60 @@ model FeatureFlag {
   updatedBy   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  weight      Decimal  @db.Decimal(10, 3)
+  purity      String   @default("24K")
+  imageUrl    String?
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      Order[]
+}
+
+model GoldPrice {
+  id        String   @id @default(cuid())
+  buyPrice  Decimal  @db.Decimal(15, 2)
+  sellPrice Decimal  @db.Decimal(15, 2)
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+}
+
+model Order {
+  id                   String        @id @default(cuid())
+  invoiceNo            Int           @unique @default(autoincrement())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id])
+  productId            String
+  product              Product       @relation(fields: [productId], references: [id])
+  quantity             Int
+  amount               Decimal       @db.Decimal(15, 2)
+  gst                  Decimal       @db.Decimal(15, 2)
+  total                Decimal       @db.Decimal(15, 2)
+  status               OrderStatus   @default(PENDING)
+  paymentStatus        PaymentStatus @default(PENDING)
+  paymentId            String?
+  razorpayPaymentId    String?
+  razorpaySignature    String?
+  paidAt               DateTime?
+  expectedDeliveryDate DateTime?
+  readyAt              DateTime?
+  deliveredAt          DateTime?
+  readyMarkedById      String?
+  tokenNumber          String?       // Assigned when admin marks READY — for office pickup
+  notes                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([paymentStatus])
 }

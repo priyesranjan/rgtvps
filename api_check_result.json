@@ -1,0 +1,14 @@
+{
+  "productsStatus": 200,
+  "priceSource": "ADMIN_SET",
+  "unauthPostStatus": 401,
+  "unauthPostBody": "{\"error\":\"Unauthorized \u2014 no token\"}",
+  "loginStatus": 200,
+  "tokenFound": true,
+  "authPostStatus": 201,
+  "authPostBody": "{\"success\":true,\"message\":\"Gold price updated successfully\",\"data\":{\"goldPrice\":{\"id\":\"cmnpndiex0002128q0hhnr57n\",\"buyPrice\":\"7400\",\"sellPrice\":\"7550\",\"timestamp\":\"2026-04-08T06:08:39.802Z\"},\"priceSource\":\"ADMIN_SET\"}}",
+  "currentStatus": 200,
+  "currentBuyPrice": null,
+  "currentSellPrice": null,
+  "currentBody": "{\"success\":true,\"message\":\"Current gold price fetched\",\"data\":{\"goldPrice\":{\"id\":\"cmnpndiex0002128q0hhnr57n\",\"buyPrice\":\"7400\",\"sellPrice\":\"7550\",\"timestamp\":\"2026-04-08T06:08:39.802Z\"},\"priceSource\":\"ADMIN_SET\"}}"
+}

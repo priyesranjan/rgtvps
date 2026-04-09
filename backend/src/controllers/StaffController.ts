@@ -14,10 +14,21 @@ export class StaffController {
     try {
       const customersCount = await prisma.user.count({ where: { staffId } });
       
-      const commissionSums = await prisma.staffCommission.aggregate({
-        where: { staffId },
-        _sum: { amount: true }
-      });
+      const [commissionSums, coinIncentiveAgg] = await Promise.all([
+        prisma.staffCommission.aggregate({
+          where: { staffId },
+          _sum: { amount: true }
+        }),
+        prisma.transaction.aggregate({
+          where: {
+            userId: staffId,
+            type: "STAFF_COMMISSION",
+            description: { contains: "incentive for customer order" },
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
+        })
+      ]);
 
       const wallet = await prisma.wallet.findUnique({
         where: { userId: staffId }
@@ -26,7 +37,9 @@ export class StaffController {
       res.json({
         customersCount,
         totalCommission: Number(commissionSums._sum.amount || 0),
-        walletBalance: Number(wallet?.referralAmount || 0)
+        walletBalance: Number(wallet?.referralAmount || 0),
+        coinOrderIncentiveTotal: Number(coinIncentiveAgg._sum.amount || 0),
+        coinOrderIncentiveCount: Number(coinIncentiveAgg._count._all || 0)
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -141,6 +154,62 @@ export class StaffController {
       });
 
       res.json(formatPaginationResponse(mappedTransactions, total, page, limit));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getCoinOrderIncentives(req: AuthRequest, res: Response) {
+    const staffId = req.user?.id;
+    if (!staffId) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+      const { skip, take, page, limit } = getPaginationOptions(req);
+      const createdFrom = (req.query.createdFrom as string) || "";
+      const createdTo = (req.query.createdTo as string) || "";
+      const dateWhere: any = {};
+      if (createdFrom) {
+        const start = new Date(createdFrom);
+        start.setHours(0, 0, 0, 0);
+        dateWhere.gte = start;
+      }
+      if (createdTo) {
+        const end = new Date(createdTo);
+        end.setHours(23, 59, 59, 999);
+        dateWhere.lte = end;
+      }
+
+      const where: any = {
+        userId: staffId,
+        type: "STAFF_COMMISSION",
+        description: { contains: "incentive for customer order" },
+      };
+      if (createdFrom || createdTo) {
+        where.createdAt = dateWhere;
+      }
+
+      const [incentives, total] = await Promise.all([
+        prisma.transaction.findMany({
+          skip,
+          take,
+          where,
+          include: {
+            performedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.transaction.count({
+          where,
+        }),
+      ]);
+
+      res.json(formatPaginationResponse(incentives, total, page, limit));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

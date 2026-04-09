@@ -281,12 +281,32 @@ export class AdminController {
       const { skip, take, page, limit } = getPaginationOptions(req);
       const search = (req.query.search as string) || "";
       const type = (req.query.type as string) || "";
+      const coinIncentiveOnly = (req.query.coinIncentiveOnly as string) === "true";
+      const createdFrom = (req.query.createdFrom as string) || "";
+      const createdTo = (req.query.createdTo as string) || "";
       const sortBy = (req.query.sortBy as string) || "createdAt";
       const sortOrder = (req.query.sortOrder as string) || "desc";
 
       const where: any = {};
       if (type) {
         where.type = type;
+      }
+      if (coinIncentiveOnly) {
+        where.type = "STAFF_COMMISSION";
+        where.description = { contains: "incentive for customer order" };
+      }
+      if (createdFrom || createdTo) {
+        where.createdAt = {};
+        if (createdFrom) {
+          const start = new Date(createdFrom);
+          start.setHours(0, 0, 0, 0);
+          where.createdAt.gte = start;
+        }
+        if (createdTo) {
+          const end = new Date(createdTo);
+          end.setHours(23, 59, 59, 999);
+          where.createdAt.lte = end;
+        }
       }
       if (search) {
         where.OR = [
@@ -399,6 +419,8 @@ export class AdminController {
         monthlyGoldAdvanceAgg,
         monthlyWithdrawalsAgg,
         totalApprovedWithdrawals,
+        totalCoinIncentiveAgg,
+        todayCoinIncentiveAgg,
         potentialReferrers,
         staffMembers,
         potentialTopCustomers
@@ -428,6 +450,23 @@ export class AdminController {
         prisma.withdrawalRequest.aggregate({
           where: { status: "APPROVED" },
           _sum: { amount: true }
+        }),
+        prisma.transaction.aggregate({
+          where: {
+            type: "STAFF_COMMISSION",
+            description: { contains: "incentive for customer order" },
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
+        }),
+        prisma.transaction.aggregate({
+          where: {
+            type: "STAFF_COMMISSION",
+            description: { contains: "incentive for customer order" },
+            createdAt: { gte: startOfToday, lte: endOfToday },
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
         }),
         prisma.user.findMany({
           where: { role: "CUSTOMER", referrals: { some: {} } },
@@ -481,6 +520,82 @@ export class AdminController {
         managedAUM: s.customers.reduce((sum: number, c: any) => sum + Number(c.wallet?.goldAdvanceAmount || 0), 0)
       })).sort((a, b) => b.managedAUM - a.managedAUM);
 
+      // ── Physical Gold Leaderboards ──
+      // Top Buyers by total order amount (PAID/READY/DELIVERED orders)
+      const orderCustomers = await prisma.order.groupBy({
+        by: ["userId"],
+        where: { status: { in: ["PAID", "READY", "DELIVERED"] } },
+        _sum: { total: true },
+        _count: { _all: true },
+        orderBy: { _sum: { total: "desc" } },
+        take: 5,
+      });
+      const buyerUserIds = orderCustomers.map((o: any) => o.userId);
+      const buyerUsers = buyerUserIds.length > 0
+        ? await prisma.user.findMany({ where: { id: { in: buyerUserIds } }, select: { id: true, name: true, email: true } })
+        : [];
+      const buyerMap = Object.fromEntries(buyerUsers.map((u: any) => [u.id, u]));
+      const topBuyers = orderCustomers.map((o: any) => ({
+        id: o.userId,
+        name: buyerMap[o.userId]?.name || "Unknown",
+        email: buyerMap[o.userId]?.email || "",
+        totalSpent: Number(o._sum.total || 0),
+        orderCount: o._count._all,
+      }));
+
+      // Top Referrers by referred customers' orders
+      const physicalReferrers = await prisma.user.findMany({
+        where: { role: "CUSTOMER", referrals: { some: { orders: { some: { status: { in: ["PAID", "READY", "DELIVERED"] } } } } } },
+        select: {
+          id: true, name: true, email: true,
+          referrals: {
+            select: {
+              orders: {
+                where: { status: { in: ["PAID", "READY", "DELIVERED"] } },
+                select: { total: true }
+              }
+            }
+          }
+        }
+      });
+      const topPhysicalReferrers = physicalReferrers.map((r: any) => {
+        const allOrders = r.referrals.flatMap((c: any) => c.orders);
+        return {
+          id: r.id,
+          name: r.name,
+          email: r.email,
+          refereeCount: r.referrals.length,
+          totalOrderValue: allOrders.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0),
+        };
+      }).sort((a, b) => b.totalOrderValue - a.totalOrderValue).slice(0, 5);
+
+      // Staff by orders processed (through their managed customers)
+      const staffWithOrders = await prisma.user.findMany({
+        where: { role: "STAFF" },
+        select: {
+          id: true, name: true, email: true,
+          customers: {
+            select: {
+              orders: {
+                where: { status: { in: ["PAID", "READY", "DELIVERED"] } },
+                select: { total: true }
+              }
+            }
+          }
+        }
+      });
+      const staffOrderPerformance = staffWithOrders.map((s: any) => {
+        const allOrders = s.customers.flatMap((c: any) => c.orders);
+        return {
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          ordersProcessed: allOrders.length,
+          totalOrderValue: allOrders.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0),
+          managedCustomers: s.customers.length,
+        };
+      }).sort((a, b) => b.totalOrderValue - a.totalOrderValue);
+
       // AUM Trend Calculation (Last 6 Months)
       const aumTrend = [];
       for (let i = 5; i >= 0; i--) {
@@ -512,6 +627,10 @@ export class AdminController {
         todayWithdrawals: Number(todayWithdrawalsAgg._sum.amount || 0),
         monthlyNetFlow: monthlyDeposits - Number(monthlyWithdrawalsAgg._sum.amount || 0),
         monthlyGrowth: Number(monthlyGrowth.toFixed(2)),
+        coinOrderIncentiveTotal: Number(totalCoinIncentiveAgg._sum.amount || 0),
+        coinOrderIncentiveCount: Number(totalCoinIncentiveAgg._count._all || 0),
+        coinOrderIncentiveToday: Number(todayCoinIncentiveAgg._sum.amount || 0),
+        coinOrderIncentiveTodayCount: Number(todayCoinIncentiveAgg._count._all || 0),
         customersCount,
         staffCount,
         pendingWithdrawalsCount,
@@ -520,6 +639,10 @@ export class AdminController {
         topCustomers,
         staffPerformance,
         aumTrend,
+        // Physical Gold leaderboards
+        topBuyers,
+        topPhysicalReferrers,
+        staffOrderPerformance,
         walletStats: {
           totalReferrals: Number(walletSums._sum.referralAmount || 0),
           totalWithdrawable: Number(walletSums._sum.totalWithdrawable || 0)

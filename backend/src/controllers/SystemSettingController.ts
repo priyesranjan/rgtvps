@@ -12,6 +12,7 @@ export class SystemSettingController {
         settings = await prisma.systemSetting.create({
           data: {
             id: "default",
+            goldMode: "DIGITAL",
             showGST: true,
             gstPercentage: 18.0,
             monthlyProfitPercentage: 5.0,
@@ -32,6 +33,7 @@ export class SystemSettingController {
   static async updateSettings(req: Request, res: Response) {
     try {
       const {
+        goldMode,
         showGST,
         gstPercentage,
         monthlyProfitPercentage,
@@ -43,6 +45,7 @@ export class SystemSettingController {
       const settings = await prisma.systemSetting.upsert({
         where: { id: "default" },
         update: {
+          goldMode: goldMode ?? "DIGITAL",
           showGST: showGST ?? true,
           gstPercentage: gstPercentage ?? 18.0,
           monthlyProfitPercentage: monthlyProfitPercentage,
@@ -52,6 +55,7 @@ export class SystemSettingController {
         },
         create: {
           id: "default",
+          goldMode: goldMode ?? "DIGITAL",
           showGST: showGST ?? true,
           gstPercentage: gstPercentage ?? 18.0,
           monthlyProfitPercentage: monthlyProfitPercentage ?? 5.0,

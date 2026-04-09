@@ -61,6 +61,7 @@ export default function SpotPriceHero() {
                     alt="24K Pure Gold Bullion"
                     fill
                     priority
+                    sizes="(max-width: 768px) 288px, 384px"
                     className="object-contain drop-shadow-[0_35px_60px_rgba(212,175,55,0.4)] animate-float"
                   />
                </div>

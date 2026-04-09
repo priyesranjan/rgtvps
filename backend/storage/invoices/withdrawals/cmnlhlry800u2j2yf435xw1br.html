@@ -1,200 +1,10 @@
-import { prisma } from "../lib/prisma";
-import * as fs from 'fs';
-import * as path from 'path';
-import * as QRCode from 'qrcode';
 
-export class InvoiceService {
-  /**
-   * Generates the HTML for a GST Tax Invoice based on a Gold Advance record.
-   */
-  static async generateGoldAdvanceInvoiceHtml(advanceId: string) {
-    console.log(`📄 [InvoiceService] Generating Gold Advance invoice for ID: ${advanceId}`);
-    const advance = await prisma.goldAdvance.findUnique({
-      where: { id: advanceId },
-      include: { user: true }
-    });
-
-    // Fetch the performer from the transaction table
-    const transaction = await prisma.transaction.findFirst({
-      where: { entityId: advanceId, type: "DEPOSIT" },
-      include: { performedBy: true }
-    });
-    const performedByName = transaction?.performedBy?.name || "System Automated";
-
-    if (!advance) {
-      console.error(`❌ [InvoiceService] Gold Advance not found for ID: ${advanceId}`);
-      throw new Error("Gold Advance not found");
-    }
-
-    return await this.generateCommonHtml({
-      id: advanceId,
-      invoiceNo: advance.invoiceNo,
-      type: "Advance Amount Paid for Future Gold Purchase Agreement / भविष्य में सोना खरीदने हेतु अग्रिम राशि अनुबंध",
-      date: advance.createdAt,
-      user: advance.user,
-      amount: Number(advance.advanceAmount),
-      description: "Gold Advance Deposit (NotePro GS8000V)",
-      hsn: "847290",
-      refLabel: "Advance ID",
-      isTaxable: true,
-      performedByName,
-      verificationUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/gold-advances/${advanceId}/invoice`
-    });
-  }
-
-  /**
-   * Generates the HTML for a Withdrawal Payment Voucher.
-   */
-  static async generateWithdrawalInvoiceHtml(withdrawalId: string) {
-    console.log(`📄 [InvoiceService] Generating Withdrawal voucher for ID: ${withdrawalId}`);
-    const withdrawal = await prisma.withdrawalRequest.findUnique({
-      where: { id: withdrawalId },
-      include: { user: true }
-    });
-
-    // Fetch the performer (Admin who approved) from the transaction table
-    const transaction = await prisma.transaction.findFirst({
-      where: { entityId: withdrawalId, type: "WITHDRAWAL" },
-      include: { performedBy: true }
-    });
-    const performedByName = transaction?.performedBy?.name || "System Automated";
-
-    if (!withdrawal) {
-      console.error(`❌ [InvoiceService] Withdrawal not found for ID: ${withdrawalId}`);
-      throw new Error("Withdrawal not found");
-    }
-
-    return await this.generateCommonHtml({
-      id: withdrawalId,
-      invoiceNo: withdrawal.invoiceNo,
-      type: "WITHDRAWAL VOUCHER",
-      date: withdrawal.createdAt,
-      user: withdrawal.user,
-      amount: Number(withdrawal.amount),
-      description: `Withdrawal Payout (Source: ${withdrawal.source})`,
-      hsn: "NIL",
-      refLabel: "Withdrawal ID",
-      isTaxable: false,
-      performedByName,
-      verificationUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/withdrawal-requests/${withdrawalId}/invoice`
-    });
-  }
-
-    /**
-     * Generates the HTML for a Gold Coin Purchase Invoice.
-     */
-    static async generateOrderInvoiceHtml(orderId: string) {
-        const order = await prisma.order.findUnique({
-            where: { id: orderId },
-            include: { user: true, product: true }
-        });
-
-        if (!order) {
-            throw new Error("Order not found");
-        }
-
-        return await this.generateCommonHtml({
-            id: order.id,
-            invoiceNo: order.invoiceNo,
-            type: "GOLD COIN PURCHASE INVOICE",
-            date: order.paidAt || order.createdAt,
-            user: order.user,
-            amount: Number(order.total),
-            description: `Gold Coin Purchase: ${order.product.name} x ${order.quantity}`,
-            hsn: "7113",
-            refLabel: "Order ID",
-            isTaxable: true,
-            performedByName: "Razorpay",
-            verificationUrl: `${process.env.BACKEND_URL || 'http://localhost:4000'}/api/orders/${orderId}/invoice`
-        });
-    }
-
-  /**
-   * Legacy method for compatibility
-   */
-  static async generateInvoiceHtml(id: string) {
-    return this.generateGoldAdvanceInvoiceHtml(id);
-  }
-
-  private static async generateCommonHtml(data: {
-    id: string;
-    invoiceNo: number;
-    type: string;
-    date: Date;
-    user: any;
-    amount: number;
-    description: string;
-    hsn: string;
-    refLabel: string;
-    isTaxable: boolean;
-    performedByName: string;
-    verificationUrl: string;
-  }) {
-    // ── Fetch Global Settings ────────────────────────────────────────────────
-    let settings = await prisma.systemSetting.findUnique({ where: { id: "default" } });
-    if (!settings) {
-      settings = { id: "default", showGST: true, gstPercentage: 18.0 } as any;
-    }
-
-    const showGST = settings!.showGST;
-    const gstPercent = Number(settings!.gstPercentage); // e.g. 18
-    const gstRate = gstPercent / 100;
-    const halfGst = gstPercent / 2; // CGST = SGST = half of total
-    
-    const totalAmount = data.amount;
-    
-    // For non-taxable (withdrawals) OR if GST is disabled by admin, tax is 0
-    const applyTax = data.isTaxable && showGST;
-
-    const taxableAmt = applyTax ? Number((totalAmount / (1 + gstRate)).toFixed(2)) : totalAmount;
-    const cgstAmt = applyTax ? Number((taxableAmt * (gstRate / 2)).toFixed(2)) : 0;
-    const sgstAmt = applyTax ? Number((taxableAmt * (gstRate / 2)).toFixed(2)) : 0;
-    const totalTax = Number((cgstAmt + sgstAmt).toFixed(2));
-    
-    // Adjust for rounding
-    const finalTotal = taxableAmt + cgstAmt + sgstAmt;
-    const diff = Number((totalAmount - finalTotal).toFixed(2));
-    const adjustedTaxable = taxableAmt + diff;
-
-    const amountInWords = this.numberToWords(totalAmount);
-    const paddedInvoiceNo = `RGT-${String(data.invoiceNo).padStart(6, '0')}`;
-
-    const dateStr = new Date(data.date).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    }).replace(/\//g, "-");
-
-    const timeStr = new Date(data.date).toLocaleTimeString("en-IN", {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    // ── Load Logo (Using Cloudflare R2 Direct URL) ──────────────────────────
-    const logoUrl = "https://pub-ee54ba2945a04c56b29b01ae5ec3c085.r2.dev/profiles/RoyalGoldTrader-Logo.png";
-
-    // ── Generate QR Code ─────────────────────────────────────────────────────
-    let qrBase64 = "";
-    try {
-      qrBase64 = await QRCode.toDataURL(data.verificationUrl, {
-        margin: 1,
-        width: 100,
-        color: {
-          dark: '#000000',
-          light: '#ffffff'
-        }
-      });
-    } catch (err) {
-      console.error("❌ [InvoiceService] QR Generation failed:", err);
-    }
-
-    return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${data.type} - ${paddedInvoiceNo}</title>
+    <title>WITHDRAWAL VOUCHER - RGT-000001</title>
     <style>
         :root {
             --bg-body: #f4f4f4;
@@ -349,7 +159,7 @@ export class InvoiceService {
         <!-- HEADER -->
         <div class="section header">
             <div class="logo-container">
-                <img class="logo-img" src="${logoUrl}" alt="Royal Gold Traders Official Logo">
+                <img class="logo-img" src="https://pub-ee54ba2945a04c56b29b01ae5ec3c085.r2.dev/profiles/RoyalGoldTrader-Logo.png" alt="Royal Gold Traders Official Logo">
             </div>
             <div class="header-title">
                 <div class="seller-info">
@@ -360,9 +170,9 @@ export class InvoiceService {
                 </div>
             </div>
             <div class="header-right" style="flex: 1.5; text-align: right; padding: 15px; border-left: 1.5px solid var(--border-primary); background: var(--bg-muted); display: flex; flex-direction: column; justify-content: center;">
-                <h2 style="margin: 0; color: var(--text-header); font-size: 11pt; font-weight: 800; text-transform: uppercase; line-height: 1.2;">${data.type}</h2>
+                <h2 style="margin: 0; color: var(--text-header); font-size: 11pt; font-weight: 800; text-transform: uppercase; line-height: 1.2;">WITHDRAWAL VOUCHER</h2>
                 <div style="margin-top: 6px; border-top: 1px solid var(--border-secondary); padding-top: 6px;">
-                    <p style="margin: 0; font-size: 8.5pt; font-weight: bold; color: var(--text-muted);">REF NO: <span style="color: var(--text-header); font-size: 10.5pt;">${paddedInvoiceNo}</span></p>
+                    <p style="margin: 0; font-size: 8.5pt; font-weight: bold; color: var(--text-muted);">REF NO: <span style="color: var(--text-header); font-size: 10.5pt;">RGT-000001</span></p>
                 </div>
             </div>
         </div>
@@ -370,14 +180,14 @@ export class InvoiceService {
         <!-- DETAILS -->
         <div class="section" style="background: var(--bg-section-alt); font-size: 10pt;">
             <div class="col col-border">
-                <p><strong>Transaction ID:</strong> <span style="font-family: monospace; font-size: 9pt;">${paddedInvoiceNo}</span></p>
-                <p><strong>Date:</strong> ${dateStr} &nbsp;|&nbsp; <strong>Time:</strong> ${timeStr}</p>
-                <p><strong>Processed by:</strong> ${data.performedByName}</p>
+                <p><strong>Transaction ID:</strong> <span style="font-family: monospace; font-size: 9pt;">RGT-000001</span></p>
+                <p><strong>Date:</strong> 05-04-2026 &nbsp;|&nbsp; <strong>Time:</strong> 01:46 pm</p>
+                <p><strong>Processed by:</strong> Dev Admin</p>
                 <p><strong>Place:</strong> Patna, Bihar (10)</p>
             </div>
             <div class="col" style="flex: 0.7;">
                 <p><strong>Status:</strong> <span style="color: var(--text-accent); font-weight: bold;">SUCCESS</span></p>
-                <p><strong>Category:</strong> ${data.isTaxable ? 'GOLD ADVANCE' : 'WITHDRAWAL / PAYOUT'}</p>
+                <p><strong>Category:</strong> WITHDRAWAL / PAYOUT</p>
                 <p><strong>Payment Mode:</strong> DIGITAL WALLET</p>
             </div>
         </div>
@@ -386,11 +196,12 @@ export class InvoiceService {
         <div class="section" style="border-bottom: 2px solid var(--border-primary);">
             <div class="col" style="padding: 15px;">
                 <p class="bold" style="text-decoration: underline; margin-bottom: 8px; font-size: 9pt; color: var(--text-muted); letter-spacing: 0.5px;">BENEFICIARY / CUSTOMER DETAILS:</p>
-                <p class="bold" style="font-size: 13pt; margin: 0; color: var(--text-header);">${data.user.name}</p>
-                <p style="font-size: 10pt; margin: 5px 0; color: var(--text-secondary);">${data.user.address || "Address Not Available In System Records"}</p>
+                <p class="bold" style="font-size: 13pt; margin: 0; color: var(--text-header);">HARSHVARDHAN SINGH</p>
+                <p style="font-size: 10pt; margin: 5px 0; color: var(--text-secondary);">Kali mandir Lakarikola
+Banka</p>
                 <div style="margin-top: 10px; display: flex; gap: 20px; font-size: 9.5pt;">
-                    <span><strong style="color: var(--text-muted);">Email:</strong> ${data.user.email}</span>
-                    <span><strong style="color: var(--text-muted);">Mobile:</strong> +91 ${data.user.contactNo || data.user.mobile || "N/A"}</span>
+                    <span><strong style="color: var(--text-muted);">Email:</strong> priyesranjan00@gmail.com</span>
+                    <span><strong style="color: var(--text-muted);">Mobile:</strong> +91 7635075400</span>
                 </div>
             </div>
         </div>
@@ -410,17 +221,17 @@ export class InvoiceService {
                 <tr style="height: 200px; vertical-align: top;">
                     <td class="center" style="padding-top: 15px;">1</td>
                     <td style="padding-top: 15px;">
-                        <p class="bold" style="font-size: 11.5pt; color: var(--text-header); margin-bottom: 5px;">${data.description}</p>
+                        <p class="bold" style="font-size: 11.5pt; color: var(--text-header); margin-bottom: 5px;">Withdrawal Payout (Source: GOLD_ADVANCE)</p>
                         <p style="font-size: 9pt; color: var(--text-muted); margin-top: 12px; border-left: 2px solid var(--border-gold); padding-left: 8px;">
-                            ${data.refLabel}: ${paddedInvoiceNo}<br>
+                            Withdrawal ID: RGT-000001<br>
                             Purpose: Electronic Fund Management
                         </p>
                         <p style="font-size: 8.5pt; color: var(--text-ultra-muted); margin-top: 15px; font-style: italic;">
                             Note: This transaction is processed securely through Royal Gold Traders ecosystem.
                         </p>
                     </td>
-                    <td class="right" style="padding-top: 15px;">${adjustedTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    <td class="right" style="padding-top: 15px;">${adjustedTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td class="right" style="padding-top: 15px;">500.00</td>
+                    <td class="right" style="padding-top: 15px;">500.00</td>
                 </tr>
             </tbody>
         </table>
@@ -430,7 +241,7 @@ export class InvoiceService {
         <div class="totals-section">
             <div class="totals-left">
                 <p class="bold" style="font-size: 9pt; color: var(--text-muted); margin-bottom: 4px;">AMOUNT IN WORDS:</p>
-                <p style="margin: 0; font-size: 11pt; font-weight: 700; color: var(--text-header);">${amountInWords} Only</p>
+                <p style="margin: 0; font-size: 11pt; font-weight: 700; color: var(--text-header);">Five Hundred Rupees Only</p>
                 
                 <div style="margin-top: 25px; padding: 10px; background: var(--bg-section-alt); border: 1px dashed var(--border-secondary); border-radius: 4px;">
                     <p style="margin: 0; font-size: 8.5pt; color: var(--text-muted);">
@@ -442,30 +253,21 @@ export class InvoiceService {
                 <table style="width: 100%; border: none;">
                     <tr>
                         <td style="color: var(--text-secondary);">Taxable Amount</td>
-                        <td class="right">₹${adjustedTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td class="right">₹500.00</td>
                     </tr>
-                    ${applyTax ? `
-                    <tr>
-                        <td style="color: var(--text-secondary);">CGST Output (${halfGst}%)</td>
-                        <td class="right">₹${cgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                    <tr>
-                        <td style="color: var(--text-secondary);">SGST Output (${halfGst}%)</td>
-                        <td class="right">₹${sgstAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                    ` : `
+                    
                     <tr>
                         <td style="color: var(--text-secondary);">Exempted Value</td>
                         <td class="right">₹0.00</td>
                     </tr>
-                    `}
+                    
                     <tr>
                         <td style="color: var(--text-secondary);">Round Off</td>
                         <td class="right">₹0.00</td>
                     </tr>
                     <tr style="border-top: 2px solid var(--border-primary);">
                         <td><span class="bold">NET PAYABLE</span></td>
-                        <td class="right bold" style="font-size: 14pt;">₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td class="right bold" style="font-size: 14pt;">₹500.00</td>
                     </tr>
                 </table>
             </div>
@@ -474,14 +276,14 @@ export class InvoiceService {
         <!-- FOOTER -->
         <div class="footer-cols">
             <div class="qr-area">
-                ${qrBase64 ? `<img src="${qrBase64}" style="width: 80px; height: 80px; border: 1px solid var(--border-secondary);" alt="Verification QR">` : '<div class="qr-placeholder">E-SIGN<br>VERIFIED</div>'}
+                <img src="data:image/png;base64,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" style="width: 80px; height: 80px; border: 1px solid var(--border-secondary);" alt="Verification QR">
                 <p style="font-size: 6pt; color: var(--text-ultra-muted); margin: 6px 0 0 0; text-align: center; width: 100%;">E-SIGN VERIFIED</p>
-                <p style="font-size: 5pt; color: var(--text-ultra-muted); margin: 2px 0 0 0; text-align: center; width: 100%;">ID: RG-${String(data.invoiceNo).padStart(6, '0')}</p>
+                <p style="font-size: 5pt; color: var(--text-ultra-muted); margin: 2px 0 0 0; text-align: center; width: 100%;">ID: RG-000001</p>
             </div>
             <div style="flex: 2; padding: 10px; display: flex; flex-direction: column; justify-content: center;">
                 <p style="margin: 0; font-size: 7.5pt; color: var(--text-muted); line-height: 1.4;">
                     * This is a computer generated document and does not require a physical signature.<br>
-                    * Printed on: ${new Date().toLocaleString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}<br>
+                    * Printed on: 09/04/2026, 08:23:52 am<br>
                     * For any discrepancies, please contact us at support@royalgoldtraders.com within 24 hours.<br>
                     * Terms & Conditions apply as per the system user agreement.
                 </p>
@@ -503,8 +305,8 @@ export class InvoiceService {
         <div style="font-size: 10pt; line-height: 1.6;">
             <div style="margin-bottom: 20px;">
                 <strong style="color: var(--text-header);">1. Advance Payment</strong><br>
-                <em style="color: var(--text-muted);">English:</em> The customer <strong style="color: var(--text-header);">${data.user.name}</strong> has voluntarily deposited an advance amount of <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')} (${amountInWords} Only)</strong> with Royal Gold Traders for the purpose of purchasing 24 Carat (999 Purity) Gold Coins in the future.<br>
-                <em style="color: var(--text-muted);">Hindi:</em> ग्राहक <strong style="color: var(--text-header);">श्री ${data.user.name}</strong> ने स्वेच्छा से भविष्य में 24 कैरेट (999 शुद्धता) सोने के सिक्के खरीदने के उद्देश्य से Royal Gold Traders के पास <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')} (${amountInWords} Only)</strong> अग्रिम राशि जमा की है।
+                <em style="color: var(--text-muted);">English:</em> The customer <strong style="color: var(--text-header);">HARSHVARDHAN SINGH</strong> has voluntarily deposited an advance amount of <strong style="color: var(--text-header);">₹500 (Five Hundred Rupees Only)</strong> with Royal Gold Traders for the purpose of purchasing 24 Carat (999 Purity) Gold Coins in the future.<br>
+                <em style="color: var(--text-muted);">Hindi:</em> ग्राहक <strong style="color: var(--text-header);">श्री HARSHVARDHAN SINGH</strong> ने स्वेच्छा से भविष्य में 24 कैरेट (999 शुद्धता) सोने के सिक्के खरीदने के उद्देश्य से Royal Gold Traders के पास <strong style="color: var(--text-header);">₹500 (Five Hundred Rupees Only)</strong> अग्रिम राशि जमा की है।
             </div>
 
             <div style="margin-bottom: 20px;">
@@ -516,19 +318,19 @@ export class InvoiceService {
             <div style="margin-bottom: 20px;">
                 <strong style="color: var(--text-header);">3. Gold Purchase Option</strong><br>
                 <em style="color: var(--text-muted);">English:</em> The customer may purchase 24 Carat (999 Purity) Gold Coins from Royal Gold Traders equivalent to the deposited amount whenever the customer chooses to buy gold.<br>
-                <em style="color: var(--text-muted);">Hindi:</em> ग्राहक जब भी सोना खरीदना चाहे, वह Royal Gold Traders से <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> के बराबर 24 कैरेट (999 शुद्धता) सोने के सिक्के खरीद सकता है।
+                <em style="color: var(--text-muted);">Hindi:</em> ग्राहक जब भी सोना खरीदना चाहे, वह Royal Gold Traders से <strong style="color: var(--text-header);">₹500</strong> के बराबर 24 कैरेट (999 शुद्धता) सोने के सिक्के खरीद सकता है।
             </div>
 
             <div style="margin-bottom: 20px;">
                 <strong style="color: var(--text-header);">4. Gold Delivery</strong><br>
-                <em style="color: var(--text-muted);">English:</em> Upon request from the customer, Royal Gold Traders shall arrange and deliver 24 Carat (999 Purity) Gold Coins equivalent to <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> within 1 working day, subject to product availability.<br>
-                <em style="color: var(--text-muted);">Hindi:</em> ग्राहक के अनुरोध पर Royal Gold Traders <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> के बराबर 24 कैरेट (999 शुद्धता) सोने के सिक्के उपलब्ध कराएगा और डिलीवरी 1 कार्य दिवस के भीतर दी जाएगी, उपलब्धता के अनुसार।
+                <em style="color: var(--text-muted);">English:</em> Upon request from the customer, Royal Gold Traders shall arrange and deliver 24 Carat (999 Purity) Gold Coins equivalent to <strong style="color: var(--text-header);">₹500</strong> within 1 working day, subject to product availability.<br>
+                <em style="color: var(--text-muted);">Hindi:</em> ग्राहक के अनुरोध पर Royal Gold Traders <strong style="color: var(--text-header);">₹500</strong> के बराबर 24 कैरेट (999 शुद्धता) सोने के सिक्के उपलब्ध कराएगा और डिलीवरी 1 कार्य दिवस के भीतर दी जाएगी, उपलब्धता के अनुसार।
             </div>
 
             <div style="margin-bottom: 20px;">
                 <strong style="color: var(--text-header);">5. Refund Option</strong><br>
-                <em style="color: var(--text-muted);">English:</em> If the customer decides not to purchase gold and wishes to withdraw the deposited amount, Royal Gold Traders agrees to refund <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> to the customer within 1 hour through cash or bank transfer.<br>
-                <em style="color: var(--text-muted);">Hindi:</em> यदि ग्राहक सोना खरीदना नहीं चाहता और जमा राशि वापस लेना चाहता है, तो Royal Gold Traders ग्राहक के अनुरोध के 1 घंटे के भीतर <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> वापस कर देगा (नकद या बैंक ट्रांसफर द्वारा)।
+                <em style="color: var(--text-muted);">English:</em> If the customer decides not to purchase gold and wishes to withdraw the deposited amount, Royal Gold Traders agrees to refund <strong style="color: var(--text-header);">₹500</strong> to the customer within 1 hour through cash or bank transfer.<br>
+                <em style="color: var(--text-muted);">Hindi:</em> यदि ग्राहक सोना खरीदना नहीं चाहता और जमा राशि वापस लेना चाहता है, तो Royal Gold Traders ग्राहक के अनुरोध के 1 घंटे के भीतर <strong style="color: var(--text-header);">₹500</strong> वापस कर देगा (नकद या बैंक ट्रांसफर द्वारा)।
             </div>
 
             <div style="margin-bottom: 20px;">
@@ -545,8 +347,8 @@ export class InvoiceService {
 
             <div style="margin-bottom: 20px;">
                 <strong style="color: var(--text-header);">8. Termination of Promotional Benefit</strong><br>
-                <em style="color: var(--text-muted);">English:</em> The promotional gift shall automatically stop when: (a) The customer purchases gold worth <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong>, OR (b) The customer withdraws the deposited amount of <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong>.<br>
-                <em style="color: var(--text-muted);">Hindi:</em> प्रमोशनल गिफ्ट निम्न स्थितियों में स्वतः बंद हो जाएगा: (a) जब ग्राहक <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> का सोना खरीद लेता है, या (b) जब ग्राहक <strong style="color: var(--text-header);">₹${Number(data.amount).toLocaleString('en-IN')}</strong> की राशि वापस ले लेता है।
+                <em style="color: var(--text-muted);">English:</em> The promotional gift shall automatically stop when: (a) The customer purchases gold worth <strong style="color: var(--text-header);">₹500</strong>, OR (b) The customer withdraws the deposited amount of <strong style="color: var(--text-header);">₹500</strong>.<br>
+                <em style="color: var(--text-muted);">Hindi:</em> प्रमोशनल गिफ्ट निम्न स्थितियों में स्वतः बंद हो जाएगा: (a) जब ग्राहक <strong style="color: var(--text-header);">₹500</strong> का सोना खरीद लेता है, या (b) जब ग्राहक <strong style="color: var(--text-header);">₹500</strong> की राशि वापस ले लेता है।
             </div>
 
             <div style="margin-bottom: 20px;">
@@ -565,7 +367,7 @@ export class InvoiceService {
                 <div style="text-align: center; width: 45%;">
                     <div style="border-bottom: 1px solid var(--border-primary); height: 40px; margin-bottom: 10px;"></div>
                     <strong style="color: var(--text-header);">Customer Signature</strong><br>
-                    <span style="color: var(--text-secondary);">Name: ${data.user.name}</span>
+                    <span style="color: var(--text-secondary);">Name: HARSHVARDHAN SINGH</span>
                 </div>
                 <div style="text-align: center; width: 45%;">
                     <div style="border-bottom: 1px solid var(--border-primary); height: 40px; margin-bottom: 10px;"></div>
@@ -577,22 +379,4 @@ export class InvoiceService {
     </div>
 </body>
 </html>
-    `;
-  }
-
-  private static numberToWords(num: number): string {
-    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
-    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-    const inWords = (n: number): string => {
-      if (n < 20) return a[n];
-      if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
-      if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 !== 0 ? 'and ' + inWords(n % 100) : '');
-      if (n < 100000) return inWords(Math.floor(n / 1000)) + 'Thousand ' + (n % 1000 !== 0 ? inWords(n % 1000) : '');
-      if (n < 10000000) return inWords(Math.floor(n / 100000)) + 'Lakh ' + (n % 100000 !== 0 ? inWords(n % 100000) : '');
-      return inWords(Math.floor(n / 10000000)) + 'Crore ' + (n % 10000000 !== 0 ? inWords(n % 10000000) : '');
-    };
-
-    return inWords(Math.floor(num)) + 'Rupees';
-  }
-}
+    
