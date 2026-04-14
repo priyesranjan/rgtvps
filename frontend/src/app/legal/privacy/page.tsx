@@ -1,5 +1,7 @@
 "use client";
 
+
+
 export default function PrivacyPolicy() {
   return (
     <div className="space-y-12 pb-24">
